@@ -62,6 +62,9 @@ export class PaperEngine {
         this.currentTool = tool;
         if (['pen', 'pencil', 'marker', 'erase'].includes(tool)) {
             this.drawingEngine.setBrush({ tool });
+            this.physics.isInteractMode = false;
+        } else {
+            this.physics.isInteractMode = true;
         }
     }
 

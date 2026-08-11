@@ -96,7 +96,7 @@ canvas {
 }
 #bg-canvas { z-index: var(--z-canvas-bg); }
 #paper-canvas { z-index: var(--z-canvas-paper); }
-#ui-canvas { z-index: var(--z-canvas-ui); pointer-events: none; }
+#ui-canvas { z-index: var(--z-canvas-ui); }
 
 /* Top Bar */
 .top-bar {

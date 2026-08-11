@@ -24,6 +24,8 @@ export class PhysicsEngine {
         this.isInteracting = false;
         this.initialTransform = null;
         this.initialPointers = [];
+        
+        this.isInteractMode = true; // Added flag to disable single-finger pan
 
         this.attachEvents();
     }
@@ -105,6 +107,8 @@ export class PhysicsEngine {
         const currentPointers = Array.from(this.pointers.values());
         
         if (currentPointers.length === 1 && this.initialPointers.length === 1) {
+            if (!this.isInteractMode) return; // Disable single finger pan if not in interact mode
+            
             // Pan
             const dx = currentPointers[0].x - this.initialPointers[0].x;
             const dy = currentPointers[0].y - this.initialPointers[0].y;
