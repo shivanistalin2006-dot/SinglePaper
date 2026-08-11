@@ -72,6 +72,7 @@ class PaperVerseApp {
             if(action === 'undo') this.paperEngine.undo();
             if(action === 'redo') this.paperEngine.redo();
             if(action === 'clear') this.paperEngine.clearDrawing();
+            if(action === 'crush') this.paperEngine.crushPaper();
         }
     }
 

@@ -58,6 +58,9 @@ export class UIManager {
         // Chatbot
         this.chatbot = document.getElementById('chatbot');
         this.chatbotHeader = document.getElementById('chatbot-header');
+        
+        // Initialize layers
+        this.populateLayers();
     }
 
     attachEvents() {
@@ -97,7 +100,9 @@ export class UIManager {
         });
         this.btnLogout.addEventListener('click', () => {
             storage.logout();
+            this.inputUsername.value = '';
             this.updateProfileUI();
+            this.viewLogin.classList.remove('hidden');
         });
 
         // Projects logic
@@ -234,6 +239,47 @@ export class UIManager {
                 this.closeModal(this.modalProjects);
             });
             this.projectsList.appendChild(card);
+        });
+    }
+
+    populateLayers() {
+        this.layerList = document.getElementById('layer-list');
+        this.layerList.innerHTML = '';
+        
+        const layers = [
+            { id: 'drawing', name: 'Drawing Layer' },
+            { id: 'origami', name: 'Origami Folds' },
+            { id: 'texture', name: 'Texture & Shadows' },
+            { id: 'base', name: 'Paper Base' }
+        ];
+        
+        layers.forEach(layer => {
+            const li = document.createElement('li');
+            li.className = 'layer-item';
+            li.style = 'display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: rgba(128,128,128,0.1); border-radius: var(--radius); margin-bottom: 0.25rem; font-size: 0.875rem;';
+            li.innerHTML = `
+                <span>${layer.name}</span>
+                <button class="icon-btn layer-toggle" data-layer="${layer.id}" style="width: 30px; height: 30px;"><i class="fa-solid fa-eye"></i></button>
+            `;
+            this.layerList.appendChild(li);
+        });
+        
+        this.layerList.querySelectorAll('.layer-toggle').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const icon = btn.querySelector('i');
+                const isVisible = icon.classList.contains('fa-eye');
+                const layerId = btn.dataset.layer;
+                
+                if (isVisible) {
+                    icon.classList.replace('fa-eye', 'fa-eye-slash');
+                    icon.style.opacity = '0.5';
+                    if(this.app.paperEngine) this.app.paperEngine.setLayerVisibility(layerId, false);
+                } else {
+                    icon.classList.replace('fa-eye-slash', 'fa-eye');
+                    icon.style.opacity = '1';
+                    if(this.app.paperEngine) this.app.paperEngine.setLayerVisibility(layerId, true);
+                }
+            });
         });
     }
 }

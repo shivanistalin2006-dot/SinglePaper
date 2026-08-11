@@ -21,6 +21,22 @@ export class PaperEngine {
         // Setup internal engines
         this.drawingEngine = new DrawingEngine(this.paperWidth, this.paperHeight);
         
+        // Tear mask canvas
+        this.tearCanvas = document.createElement('canvas');
+        this.tearCanvas.width = this.paperWidth;
+        this.tearCanvas.height = this.paperHeight;
+        this.tearCtx = this.tearCanvas.getContext('2d');
+        this.resetTearMask();
+        
+        this.crushIntensity = 0;
+        this.folds = []; // Array to hold fold lines for origami
+        this.layerVisibility = {
+            base: true,
+            texture: true,
+            origami: true,
+            drawing: true
+        };
+        
         // Transform callback
         this.physics = new PhysicsEngine(this.uiCanvas, (transform) => {
             this.requestRender();
@@ -60,8 +76,9 @@ export class PaperEngine {
 
     setTool(tool) {
         this.currentTool = tool;
-        if (['pen', 'pencil', 'marker', 'erase'].includes(tool)) {
-            this.drawingEngine.setBrush({ tool });
+        if (['pen', 'pencil', 'marker', 'erase', 'tear'].includes(tool)) {
+            // For tearing, we use a separate context but UI state can just say it's drawing mode
+            if (tool !== 'tear') this.drawingEngine.setBrush({ tool });
             this.physics.isInteractMode = false;
         } else {
             this.physics.isInteractMode = true;
@@ -83,11 +100,11 @@ export class PaperEngine {
     }
 
     undo() {
-        if (this.drawingEngine.undo()) this.requestRender();
+        if (this.currentTool !== 'tear' && this.drawingEngine.undo()) this.requestRender();
     }
 
     redo() {
-        if (this.drawingEngine.redo()) this.requestRender();
+        if (this.currentTool !== 'tear' && this.drawingEngine.redo()) this.requestRender();
     }
 
     clearDrawing() {
@@ -95,8 +112,48 @@ export class PaperEngine {
         this.requestRender();
     }
     
+    crushPaper() {
+        this.crushIntensity += 1;
+        this.texture = 'crumpled'; // Switch to crumpled texture to show effect
+        this.requestRender();
+    }
+    
+    resetTearMask() {
+        this.tearCtx.globalCompositeOperation = 'source-over';
+        this.tearCtx.fillStyle = '#ffffff';
+        this.tearCtx.fillRect(0, 0, this.paperWidth, this.paperHeight);
+    }
+
     resetTransform() {
         this.centerPaper();
+        this.crushIntensity = 0;
+        this.folds = [];
+        this.resetTearMask();
+        this.requestRender();
+    }
+
+    // --- Origami ---
+    applyFold(action) {
+        // Simple 2D fold representations
+        const cx = this.paperWidth / 2;
+        const cy = this.paperHeight / 2;
+        
+        let fold = null;
+        if (action.includes('half-down')) fold = { type: 'horizontal', y: cy };
+        else if (action.includes('center')) fold = { type: 'vertical', x: cx };
+        else if (action.includes('corners')) fold = { type: 'corners' };
+        else if (action.includes('wings')) fold = { type: 'horizontal', y: cy - 100 };
+        else fold = { type: 'diagonal' }; // generic fallback
+        
+        this.folds.push(fold);
+        this.requestRender();
+    }
+
+    setLayerVisibility(layer, isVisible) {
+        if (this.layerVisibility[layer] !== undefined) {
+            this.layerVisibility[layer] = isVisible;
+            this.requestRender();
+        }
     }
 
     // --- Interaction routing ---
@@ -113,7 +170,12 @@ export class PaperEngine {
             // Check if point is inside paper bounds
             if (pt.x >= 0 && pt.x <= this.paperWidth && pt.y >= 0 && pt.y <= this.paperHeight) {
                 isDrawingAction = true;
-                this.drawingEngine.startStroke(pt.x, pt.y);
+                
+                if (this.currentTool === 'tear') {
+                    this.startTear(pt.x, pt.y);
+                } else {
+                    this.drawingEngine.startStroke(pt.x, pt.y);
+                }
                 this.requestRender();
             }
         });
@@ -121,13 +183,20 @@ export class PaperEngine {
         this.uiCanvas.addEventListener('pointermove', (e) => {
             if (!isDrawingAction) return;
             const pt = this.physics.screenToCanvas(e.clientX, e.clientY);
-            this.drawingEngine.drawStroke(pt.x, pt.y);
+            
+            if (this.currentTool === 'tear') {
+                this.drawTear(pt.x, pt.y);
+            } else {
+                this.drawingEngine.drawStroke(pt.x, pt.y);
+            }
             this.requestRender();
         });
 
         const endDraw = () => {
             if (isDrawingAction) {
-                this.drawingEngine.endStroke();
+                if (this.currentTool !== 'tear') {
+                    this.drawingEngine.endStroke();
+                }
                 isDrawingAction = false;
                 this.requestRender();
             }
@@ -135,6 +204,23 @@ export class PaperEngine {
 
         this.uiCanvas.addEventListener('pointerup', endDraw);
         this.uiCanvas.addEventListener('pointerout', endDraw);
+    }
+    
+    startTear(x, y) {
+        this.tearCtx.globalCompositeOperation = 'destination-out';
+        this.tearCtx.lineJoin = 'round';
+        this.tearCtx.lineCap = 'round';
+        this.tearCtx.lineWidth = 15;
+        this.tearCtx.beginPath();
+        this.tearCtx.moveTo(x, y);
+    }
+    
+    drawTear(x, y) {
+        // Add jagged noise to the path to make it look like a real tear
+        const noisyX = x + (Math.random() - 0.5) * 10;
+        const noisyY = y + (Math.random() - 0.5) * 10;
+        this.tearCtx.lineTo(noisyX, noisyY);
+        this.tearCtx.stroke();
     }
 
     // --- Rendering ---
@@ -176,23 +262,39 @@ export class PaperEngine {
         ctx.shadowOffsetY = 20;
 
         // 3. Draw Base Paper
-        ctx.fillStyle = this.color;
-        ctx.fillRect(0, 0, this.paperWidth, this.paperHeight);
+        if (this.layerVisibility.base) {
+            ctx.fillStyle = this.color;
+            ctx.fillRect(0, 0, this.paperWidth, this.paperHeight);
+            
+            // Apply Tear Mask
+            ctx.globalCompositeOperation = 'destination-in';
+            ctx.drawImage(this.tearCanvas, 0, 0);
+            ctx.globalCompositeOperation = 'source-over';
+        }
         
         // Reset shadow for subsequent drawings
         ctx.shadowColor = 'transparent';
 
-        // 4. Draw texture overlay (simulated with composite operations)
-        if (this.texture === 'crumpled') {
-            this.drawCrumpledTexture(ctx);
-        } else if (this.texture === 'watercolor') {
-            this.drawWatercolorTexture(ctx);
-        } else if (this.texture === 'vintage') {
-            this.drawVintageTexture(ctx);
+        // 4. Draw texture overlay
+        if (this.layerVisibility.texture) {
+            if (this.texture === 'crumpled') {
+                this.drawCrumpledTexture(ctx);
+            } else if (this.texture === 'watercolor') {
+                this.drawWatercolorTexture(ctx);
+            } else if (this.texture === 'vintage') {
+                this.drawVintageTexture(ctx);
+            }
+        }
+        
+        // 4b. Draw Origami Folds
+        if (this.layerVisibility.origami && this.folds.length > 0) {
+            this.drawOrigamiFolds(ctx);
         }
 
         // 5. Draw the Drawing Layer
-        ctx.drawImage(this.drawingEngine.getCanvas(), 0, 0);
+        if (this.layerVisibility.drawing) {
+            ctx.drawImage(this.drawingEngine.getCanvas(), 0, 0);
+        }
 
         ctx.restore();
     }
@@ -201,16 +303,27 @@ export class PaperEngine {
     drawCrumpledTexture(ctx) {
         ctx.save();
         ctx.globalCompositeOperation = 'multiply';
-        ctx.fillStyle = 'rgba(0,0,0,0.05)';
-        // Draw some random "crease" lines
-        for(let i=0; i<20; i++) {
+        
+        // Increase darkness/intensity based on how many times crushed
+        const baseAlpha = 0.05 + (this.crushIntensity * 0.05);
+        ctx.fillStyle = `rgba(0,0,0,${baseAlpha})`;
+        ctx.fillRect(0, 0, this.paperWidth, this.paperHeight);
+        
+        // Draw random "crease" lines
+        const lines = 20 + (this.crushIntensity * 15);
+        for(let i=0; i<lines; i++) {
             ctx.beginPath();
-            ctx.moveTo(Math.random() * this.paperWidth, 0);
-            ctx.lineTo(Math.random() * this.paperWidth, this.paperHeight);
+            ctx.moveTo(Math.random() * this.paperWidth, Math.random() * this.paperHeight);
+            ctx.lineTo(Math.random() * this.paperWidth, Math.random() * this.paperHeight);
             ctx.lineWidth = Math.random() * 5 + 1;
-            ctx.strokeStyle = `rgba(0,0,0,${Math.random() * 0.1})`;
+            ctx.strokeStyle = `rgba(0,0,0,${Math.random() * 0.15})`;
             ctx.stroke();
         }
+        
+        // Also apply destination-in tear mask to textures so they don't draw outside torn paper
+        ctx.globalCompositeOperation = 'destination-in';
+        ctx.drawImage(this.tearCanvas, 0, 0);
+        
         ctx.restore();
     }
 
@@ -234,6 +347,55 @@ export class PaperEngine {
         grad.addColorStop(1, 'rgba(150, 100, 50, 0.4)');
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, this.paperWidth, this.paperHeight);
+        
+        ctx.globalCompositeOperation = 'destination-in';
+        ctx.drawImage(this.tearCanvas, 0, 0);
+        
+        ctx.restore();
+    }
+    
+    drawOrigamiFolds(ctx) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'multiply';
+        
+        this.folds.forEach(fold => {
+            const grad = ctx.createLinearGradient(0, 0, this.paperWidth, this.paperHeight);
+            
+            if (fold.type === 'horizontal') {
+                const gradH = ctx.createLinearGradient(0, fold.y - 20, 0, fold.y + 20);
+                gradH.addColorStop(0, 'rgba(0,0,0,0)');
+                gradH.addColorStop(0.5, 'rgba(0,0,0,0.15)');
+                gradH.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = gradH;
+                ctx.fillRect(0, fold.y - 20, this.paperWidth, 40);
+            } else if (fold.type === 'vertical') {
+                const gradV = ctx.createLinearGradient(fold.x - 20, 0, fold.x + 20, 0);
+                gradV.addColorStop(0, 'rgba(0,0,0,0)');
+                gradV.addColorStop(0.5, 'rgba(0,0,0,0.15)');
+                gradV.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = gradV;
+                ctx.fillRect(fold.x - 20, 0, 40, this.paperHeight);
+            } else if (fold.type === 'corners') {
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(this.paperWidth / 2, this.paperHeight / 4);
+                ctx.lineTo(this.paperWidth, 0);
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+                ctx.stroke();
+            } else {
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(this.paperWidth, this.paperHeight);
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+                ctx.stroke();
+            }
+        });
+        
+        ctx.globalCompositeOperation = 'destination-in';
+        ctx.drawImage(this.tearCanvas, 0, 0);
+        
         ctx.restore();
     }
 }

@@ -131,14 +131,13 @@ export class OrigamiManager {
     }
 
     updateVisuals(action) {
-        // In a full implementation, this would trigger specific paper folding animations
-        // on the paper Engine. For the prototype, we will just show an icon/text
+        // Update the visual instruction icon
         this.elAnimation.innerHTML = `<i class="fa-solid fa-scroll" style="font-size: 3rem; color: var(--accent); margin: 1rem 0; opacity: 0.5;"></i>`;
         
-        // Let's hook into the paper engine to simulate fold creases
+        // Actually simulate the fold on the canvas
         if (this.app.paperEngine) {
-            // Apply some visual cue to the paper
-            console.log(`Action: ${action}`);
+            this.app.paperEngine.applyFold(action);
+            console.log(`Action applied: ${action}`);
         }
     }
 
