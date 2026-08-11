@@ -90,6 +90,7 @@ export class UIManager {
             try {
                 await storage.login(username);
                 this.updateProfileUI();
+                this.closeModal(this.modalProfile); // Automatically close modal after entering
             } catch(e) {
                 alert("Invalid username");
             }
@@ -206,8 +207,7 @@ export class UIManager {
         } else {
             this.viewLogin.classList.remove('hidden');
             this.viewActive.classList.add('hidden');
-            // If not logged in, force open modal if they try to do project stuff
-            this.openModal(this.modalProfile);
+            // Removed forced modal opening so friends visiting the site can just play instantly.
         }
     }
 
