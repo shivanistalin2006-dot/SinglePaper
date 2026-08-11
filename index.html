@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PaperVerse</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="description" content="An interactive digital paper playground.">
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;600;700&family=Caveat:wght@400;600&display=swap" rel="stylesheet">
+    <!-- FontAwesome icons (using CDN for prototype simplicity) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- App Container -->
+    <div id="app-container">
+        
+        <!-- Canvas Layers -->
+        <div id="canvas-container">
+            <canvas id="bg-canvas"></canvas>
+            <canvas id="paper-canvas"></canvas>
+            <!-- Overlay for interactions like folding/tearing hints if needed -->
+            <canvas id="ui-canvas"></canvas>
+        </div>
+
+        <!-- Header / Top Bar -->
+        <header class="top-bar glass">
+            <div class="logo">
+                <i class="fa-solid fa-scroll"></i>
+                <span>PaperVerse</span>
+            </div>
+            <div class="top-controls">
+                <button id="btn-projects" class="icon-btn tooltip" data-tooltip="Projects"><i class="fa-solid fa-folder-open"></i></button>
+                <button id="btn-theme" class="icon-btn tooltip" data-tooltip="Toggle Theme"><i class="fa-solid fa-moon"></i></button>
+                <button id="btn-profile" class="icon-btn tooltip" data-tooltip="Profile"><i class="fa-solid fa-user-circle"></i></button>
+            </div>
+        </header>
+
+        <!-- Main Toolbar (Tools) -->
+        <aside class="toolbar side-panel glass" id="main-toolbar">
+            <div class="tool-group">
+                <button class="tool-btn active tooltip" data-tool="interact" data-tooltip="Interact (Pan/Zoom)"><i class="fa-solid fa-hand"></i></button>
+                <button class="tool-btn tooltip" data-tool="draw" data-tooltip="Draw (Pen)"><i class="fa-solid fa-pen"></i></button>
+                <button class="tool-btn tooltip" data-tool="pencil" data-tooltip="Pencil"><i class="fa-solid fa-pencil"></i></button>
+                <button class="tool-btn tooltip" data-tool="marker" data-tooltip="Marker"><i class="fa-solid fa-highlighter"></i></button>
+                <button class="tool-btn tooltip" data-tool="erase" data-tooltip="Eraser"><i class="fa-solid fa-eraser"></i></button>
+                <button class="tool-btn tooltip" data-tool="text" data-tooltip="Add Text"><i class="fa-solid fa-font"></i></button>
+                <button class="tool-btn tooltip" data-tool="sticker" data-tooltip="Stickers"><i class="fa-solid fa-note-sticky"></i></button>
+            </div>
+            
+            <div class="tool-separator"></div>
+            
+            <div class="tool-group">
+                <button class="tool-btn action-btn tooltip" data-action="undo" data-tooltip="Undo"><i class="fa-solid fa-rotate-left"></i></button>
+                <button class="tool-btn action-btn tooltip" data-action="redo" data-tooltip="Redo"><i class="fa-solid fa-rotate-right"></i></button>
+                <button class="tool-btn action-btn tooltip text-danger" data-action="clear" data-tooltip="Clear Drawing"><i class="fa-solid fa-trash-can"></i></button>
+            </div>
+
+            <div class="tool-separator"></div>
+
+            <div class="tool-group tool-settings">
+                <div class="color-picker-wrap tooltip" data-tooltip="Color">
+                    <input type="color" id="brush-color" value="#000000">
+                </div>
+                <div class="slider-wrap tooltip" data-tooltip="Size">
+                    <i class="fa-solid fa-circle" style="font-size: 0.5rem"></i>
+                    <input type="range" id="brush-size" min="1" max="50" value="5">
+                </div>
+            </div>
+        </aside>
+
+        <!-- Right Side Panel (Paper Customization & Origami) -->
+        <aside class="right-panel glass" id="right-panel">
+            <div class="tabs">
+                <button class="tab-btn active" data-target="panel-paper">Paper</button>
+                <button class="tab-btn" data-target="panel-origami">Origami</button>
+                <button class="tab-btn" data-target="panel-layers">Layers</button>
+            </div>
+
+            <div class="tab-content active" id="panel-paper">
+                <h3>Paper Properties</h3>
+                <div class="property-group">
+                    <label>Color</label>
+                    <div class="preset-colors">
+                        <button class="color-preset active" style="background: #ffffff" data-color="#ffffff"></button>
+                        <button class="color-preset" style="background: #fdf6e3" data-color="#fdf6e3"></button>
+                        <button class="color-preset" style="background: #d4a373" data-color="#d4a373"></button>
+                        <button class="color-preset" style="background: #a2d2ff" data-color="#a2d2ff"></button>
+                        <button class="color-preset" style="background: #ffc8dd" data-color="#ffc8dd"></button>
+                        <button class="color-preset" style="background: #b7e4c7" data-color="#b7e4c7"></button>
+                        <button class="color-preset" style="background: #1a1a1a" data-color="#1a1a1a"></button>
+                        <input type="color" id="custom-paper-color" class="color-custom" value="#ffffff">
+                    </div>
+                </div>
+                
+                <div class="property-group">
+                    <label>Texture</label>
+                    <select id="paper-texture">
+                        <option value="smooth">Smooth</option>
+                        <option value="craft">Craft</option>
+                        <option value="watercolor">Watercolor</option>
+                        <option value="crumpled">Crumpled</option>
+                        <option value="vintage">Vintage</option>
+                    </select>
+                </div>
+                
+                <div class="property-group">
+                    <label>Background Environment</label>
+                    <select id="bg-environment">
+                        <option value="particles">Floating Particles</option>
+                        <option value="mesh">Mesh Gradient</option>
+                        <option value="stars">Galaxy Stars</option>
+                        <option value="waves">Abstract Waves</option>
+                        <option value="solid">Solid Dark</option>
+                    </select>
+                </div>
+
+                <div class="property-group actions">
+                    <button class="btn secondary" id="btn-reset-paper">Reset Paper</button>
+                </div>
+            </div>
+
+            <div class="tab-content" id="panel-origami">
+                <h3>Origami Library</h3>
+                <div class="origami-list" id="origami-list">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <div class="tab-content" id="panel-layers">
+                <h3>Layers</h3>
+                <ul class="layer-list" id="layer-list">
+                    <!-- Populated by JS -->
+                </ul>
+            </div>
+        </aside>
+
+        <!-- Origami Tutorial Overlay (Hidden by default) -->
+        <div id="origami-tutorial-overlay" class="glass-heavy hidden">
+            <div class="tutorial-header">
+                <h2 id="tutorial-title">Paper Boat</h2>
+                <button id="btn-close-tutorial" class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="tutorial-content">
+                <div class="step-indicator" id="tutorial-step-indicator">Step 1 of 5</div>
+                <p id="tutorial-instruction">Fold the paper in half.</p>
+                <div class="tutorial-animation" id="tutorial-animation-container">
+                    <!-- Animation canvas or SVG goes here -->
+                </div>
+            </div>
+            <div class="tutorial-controls">
+                <button id="btn-tut-prev" class="btn secondary" disabled>Previous</button>
+                <button id="btn-tut-restart" class="btn secondary"><i class="fa-solid fa-arrow-rotate-left"></i></button>
+                <button id="btn-tut-next" class="btn primary">Next</button>
+            </div>
+        </div>
+
+        <!-- Chatbot / Assistant Widget -->
+        <div class="chatbot-widget collapsed" id="chatbot">
+            <div class="chatbot-header" id="chatbot-header">
+                <div class="chatbot-title">
+                    <i class="fa-solid fa-robot"></i> Paper Ideas
+                </div>
+                <button class="icon-btn"><i class="fa-solid fa-chevron-up toggle-icon"></i></button>
+            </div>
+            <div class="chatbot-body">
+                <div class="chat-history" id="chat-history">
+                    <div class="chat-msg bot">Hi! I can suggest origami ideas, drawing challenges, or paper games. What would you like to do?</div>
+                </div>
+                <div class="chat-suggestions">
+                    <button class="chip" data-query="origami">Origami idea</button>
+                    <button class="chip" data-query="drawing">Drawing challenge</button>
+                    <button class="chip" data-query="surprise">Surprise me</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modals -->
+        
+        <!-- Profile/Login Modal -->
+        <div class="modal-overlay hidden" id="modal-profile">
+            <div class="modal glass">
+                <div class="modal-header">
+                    <h2>Welcome to PaperVerse</h2>
+                    <button class="icon-btn close-modal"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div id="profile-login-view">
+                        <p>Create a local profile to save your projects across sessions.</p>
+                        <input type="text" id="input-username" placeholder="Choose a username..." class="form-input">
+                        <button id="btn-login" class="btn primary full-width">Enter Playground</button>
+                    </div>
+                    <div id="profile-active-view" class="hidden">
+                        <div class="profile-info">
+                            <div class="avatar"><i class="fa-solid fa-user"></i></div>
+                            <h3 id="display-username">User</h3>
+                        </div>
+                        <div class="stats">
+                            <div class="stat"><span id="stat-projects">0</span> Projects</div>
+                        </div>
+                        <button id="btn-logout" class="btn secondary full-width mt-4">Switch Profile</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Projects Modal -->
+        <div class="modal-overlay hidden" id="modal-projects">
+            <div class="modal glass modal-lg">
+                <div class="modal-header">
+                    <h2>Your Projects</h2>
+                    <button class="icon-btn close-modal"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div class="projects-actions">
+                        <button id="btn-new-project" class="btn primary"><i class="fa-solid fa-plus"></i> New Project</button>
+                        <button id="btn-save-project" class="btn secondary"><i class="fa-solid fa-floppy-disk"></i> Save Current</button>
+                    </div>
+                    <div class="projects-grid" id="projects-list">
+                        <!-- Populated by JS -->
+                        <div class="empty-state">No saved projects yet.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Scripts (ES6 Modules) -->
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
