@@ -73,6 +73,7 @@ class PaperVerseApp {
             if(action === 'redo') this.paperEngine.redo();
             if(action === 'clear') this.paperEngine.clearDrawing();
             if(action === 'crush') this.paperEngine.crushPaper();
+            if(action === 'flip') this.paperEngine.flipPaper();
         }
     }
 
@@ -87,6 +88,15 @@ class PaperVerseApp {
 
     setBackground(bg) {
         if (this.bgEngine) this.bgEngine.setEnvironment(bg);
+    }
+    
+    setAdjustment(type, value) {
+        if (this.paperEngine) {
+            if (type === 'brightness') this.paperEngine.brightness = parseFloat(value);
+            if (type === 'contrast') this.paperEngine.contrast = parseFloat(value);
+            if (type === 'opacity') this.paperEngine.opacity = parseFloat(value);
+            this.paperEngine.requestRender();
+        }
     }
 
     resetPaper() {

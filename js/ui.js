@@ -51,6 +51,11 @@ export class UIManager {
         this.bgEnvironment = document.getElementById('bg-environment');
         this.btnResetPaper = document.getElementById('btn-reset-paper');
         
+        // Adjustments
+        this.paperBrightness = document.getElementById('paper-brightness');
+        this.paperContrast = document.getElementById('paper-contrast');
+        this.paperOpacity = document.getElementById('paper-opacity');
+        
         // Brush settings
         this.brushColor = document.getElementById('brush-color');
         this.brushSize = document.getElementById('brush-size');
@@ -166,6 +171,11 @@ export class UIManager {
         this.btnResetPaper.addEventListener('click', () => {
             this.app.resetPaper();
         });
+        
+        // Adjustments
+        this.paperBrightness.addEventListener('input', (e) => this.app.setAdjustment('brightness', e.target.value));
+        this.paperContrast.addEventListener('input', (e) => this.app.setAdjustment('contrast', e.target.value));
+        this.paperOpacity.addEventListener('input', (e) => this.app.setAdjustment('opacity', e.target.value));
         
         // Brush settings
         this.brushColor.addEventListener('input', (e) => this.app.setBrushColor(e.target.value));

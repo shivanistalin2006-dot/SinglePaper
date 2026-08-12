@@ -37,6 +37,11 @@ export class PaperEngine {
             drawing: true
         };
         
+        this.brightness = 1;
+        this.contrast = 1;
+        this.opacity = 1;
+        this.isFlipped = false;
+        
         // Transform callback
         this.physics = new PhysicsEngine(this.uiCanvas, (transform) => {
             this.requestRender();
@@ -80,6 +85,8 @@ export class PaperEngine {
             // For tearing, we use a separate context but UI state can just say it's drawing mode
             if (tool !== 'tear') this.drawingEngine.setBrush({ tool });
             this.physics.isInteractMode = false;
+        } else if (['text', 'sticker'].includes(tool)) {
+            this.physics.isInteractMode = false;
         } else {
             this.physics.isInteractMode = true;
         }
@@ -115,6 +122,11 @@ export class PaperEngine {
     crushPaper() {
         this.crushIntensity += 1;
         this.texture = 'crumpled'; // Switch to crumpled texture to show effect
+        this.requestRender();
+    }
+    
+    flipPaper() {
+        this.isFlipped = !this.isFlipped;
         this.requestRender();
     }
     
@@ -173,6 +185,12 @@ export class PaperEngine {
                 
                 if (this.currentTool === 'tear') {
                     this.startTear(pt.x, pt.y);
+                } else if (this.currentTool === 'text') {
+                    this.addText(pt.x, pt.y);
+                    isDrawingAction = false;
+                } else if (this.currentTool === 'sticker') {
+                    this.addSticker(pt.x, pt.y);
+                    isDrawingAction = false;
                 } else {
                     this.drawingEngine.startStroke(pt.x, pt.y);
                 }
@@ -186,7 +204,7 @@ export class PaperEngine {
             
             if (this.currentTool === 'tear') {
                 this.drawTear(pt.x, pt.y);
-            } else {
+            } else if (!['text', 'sticker'].includes(this.currentTool)) {
                 this.drawingEngine.drawStroke(pt.x, pt.y);
             }
             this.requestRender();
@@ -222,6 +240,26 @@ export class PaperEngine {
         this.tearCtx.lineTo(noisyX, noisyY);
         this.tearCtx.stroke();
     }
+    
+    addText(x, y) {
+        const text = prompt("Enter your text:");
+        if (text) {
+            const ctx = this.drawingEngine.ctx;
+            ctx.font = `bold ${Math.max(20, this.drawingEngine.brushSize * 5)}px sans-serif`;
+            ctx.fillStyle = this.drawingEngine.color;
+            ctx.fillText(text, x, y);
+            this.drawingEngine.saveState();
+        }
+    }
+
+    addSticker(x, y) {
+        const stickers = ['🌟', '🚀', '💡', '💖', '🔥', '🎉', '🌸', '✨'];
+        const sticker = stickers[Math.floor(Math.random() * stickers.length)];
+        const ctx = this.drawingEngine.ctx;
+        ctx.font = `${Math.max(40, this.drawingEngine.brushSize * 10)}px sans-serif`;
+        ctx.fillText(sticker, x, y);
+        this.drawingEngine.saveState();
+    }
 
     // --- Rendering ---
 
@@ -242,18 +280,21 @@ export class PaperEngine {
 
         ctx.save();
         
-        // 1. Apply global paper transform
+        // Apply physical transformations
         ctx.translate(x, y);
-        
-        // Scale around top-left
         ctx.scale(scale, scale);
         
-        // Translate to center to rotate, then translate back
+        // Translate to center to rotate/flip, then translate back
         const cx = this.paperWidth / 2;
         const cy = this.paperHeight / 2;
         ctx.translate(cx, cy);
         ctx.rotate(rotation);
+        if (this.isFlipped) ctx.scale(-1, 1);
         ctx.translate(-cx, -cy);
+
+        // Apply visual adjustments
+        ctx.filter = `brightness(${this.brightness}) contrast(${this.contrast})`;
+        ctx.globalAlpha = this.opacity;
 
         // 2. Draw Shadow
         ctx.shadowColor = 'rgba(0,0,0,0.3)';
