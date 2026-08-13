@@ -185,6 +185,7 @@ export class PaperEngine {
                 
                 if (this.currentTool === 'tear') {
                     this.startTear(pt.x, pt.y);
+                    if(this.app.audio) this.app.audio.startContinuousTear();
                 } else if (this.currentTool === 'text') {
                     this.addText(pt.x, pt.y);
                     isDrawingAction = false;
@@ -214,6 +215,8 @@ export class PaperEngine {
             if (isDrawingAction) {
                 if (this.currentTool !== 'tear') {
                     this.drawingEngine.endStroke();
+                } else {
+                    if(this.app.audio) this.app.audio.stopContinuousTear();
                 }
                 isDrawingAction = false;
                 this.requestRender();

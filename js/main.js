@@ -4,9 +4,11 @@ import { PaperEngine } from './paper.js';
 import { BackgroundEngine } from './backgrounds.js';
 import { OrigamiManager } from './origami.js';
 import { ChatbotManager } from './chatbot.js';
+import { AudioEngine } from './audio.js';
 
 class PaperVerseApp {
     constructor() {
+        this.audio = new AudioEngine();
         this.currentTool = 'interact';
         this.paperColor = '#ffffff';
         this.brushColor = '#000000';
@@ -72,7 +74,10 @@ class PaperVerseApp {
             if(action === 'undo') this.paperEngine.undo();
             if(action === 'redo') this.paperEngine.redo();
             if(action === 'clear') this.paperEngine.clearDrawing();
-            if(action === 'crush') this.paperEngine.crushPaper();
+            if(action === 'crush') {
+                this.audio.playCrush();
+                this.paperEngine.crushPaper();
+            }
             if(action === 'flip') this.paperEngine.flipPaper();
         }
     }
