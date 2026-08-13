@@ -69,7 +69,37 @@ export class UIManager {
     }
 
     attachEvents() {
-        // Theme toggle
+        // Mode switching
+        const navBtns = document.querySelectorAll('.nav-btn');
+        navBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                navBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this.app.setMode(btn.dataset.mode);
+            });
+        });
+
+        // Export
+        const btnExport = document.getElementById('btn-export');
+        if (btnExport) {
+            btnExport.addEventListener('click', () => this.app.exportImage());
+        }
+
+        // Onboarding
+        const btnStartOnboarding = document.getElementById('btn-start-onboarding');
+        const modalOnboarding = document.getElementById('modal-onboarding');
+        if (btnStartOnboarding && modalOnboarding) {
+            btnStartOnboarding.addEventListener('click', () => {
+                modalOnboarding.classList.add('hidden');
+                localStorage.setItem('pv_hasSeenOnboarding', 'true');
+            });
+            
+            if (!localStorage.getItem('pv_hasSeenOnboarding')) {
+                modalOnboarding.classList.remove('hidden');
+            }
+        }
+
+        // ModalsTheme toggle
         this.btnTheme.addEventListener('click', () => {
             this.theme = this.theme === 'dark' ? 'light' : 'dark';
             this.applyTheme(this.theme);
@@ -240,9 +270,15 @@ export class UIManager {
             const card = document.createElement('div');
             card.className = 'project-card';
             const date = new Date(p.updatedAt).toLocaleDateString();
+            
+            const thumbHtml = p.data && p.data.thumbnail ? 
+                `<img src="${p.data.thumbnail}" style="width: 100%; height: 80px; object-fit: cover; border-radius: var(--radius); margin-bottom: 0.5rem;" />` : 
+                `<div style="width: 100%; height: 80px; background: rgba(255,255,255,0.1); border-radius: var(--radius); margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-image" style="opacity:0.5;"></i></div>`;
+                
             card.innerHTML = `
-                <div class="title">${p.title || 'Untitled Paper'}</div>
-                <div class="date">Saved: ${date}</div>
+                ${thumbHtml}
+                <div class="title" style="font-weight: 600; font-size: 0.9rem;">${p.title || 'Untitled Paper'}</div>
+                <div class="date" style="font-size: 0.75rem; color: var(--text-muted);">${date}</div>
             `;
             card.addEventListener('click', () => {
                 this.app.loadProject(p.id);

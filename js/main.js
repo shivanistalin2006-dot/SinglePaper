@@ -67,6 +67,28 @@ class PaperVerseApp {
         console.log("Tool set to:", tool);
         if (this.paperEngine) this.paperEngine.setTool(tool);
     }
+    
+    setMode(mode) {
+        console.log(`Switching to mode: ${mode}`);
+        this.currentMode = mode;
+        
+        const rightPanel = document.querySelector('.right-panel');
+        const leftToolbar = document.querySelector('.left-toolbar');
+        
+        if (mode === 'create') {
+            rightPanel.style.display = 'block';
+            leftToolbar.style.display = 'flex';
+        } else if (mode === 'relax') {
+            rightPanel.style.display = 'none';
+            leftToolbar.style.display = 'none';
+            if (this.bgEngine) this.bgEngine.setEnvironment('waves');
+        } else if (mode === 'learn') {
+            rightPanel.style.display = 'block';
+            leftToolbar.style.display = 'flex';
+            const origamiTab = document.querySelector('.tab-btn[data-tab="origami"]');
+            if (origamiTab) origamiTab.click();
+        }
+    }
 
     triggerAction(action) {
         console.log("Action triggered:", action);
@@ -107,6 +129,18 @@ class PaperVerseApp {
     resetPaper() {
         if (this.paperEngine) this.paperEngine.resetTransform();
     }
+    
+    exportImage() {
+        if (!this.paperEngine) return;
+        const canvas = document.getElementById('paper-canvas');
+        const dataUrl = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = 'SinglePaper_Export.png';
+        link.href = dataUrl;
+        link.click();
+    }
+
+    // --- Projects logic ---
 
     setBrushColor(color) {
         this.brushColor = color;
@@ -130,15 +164,31 @@ class PaperVerseApp {
     async saveProject() {
         if (!storage.isLoggedIn()) {
             alert("Please create a profile first to save projects.");
+            if (this.ui) this.ui.openModal(this.ui.modalProfile);
             return;
         }
+
+        let name = prompt("Enter project name:", this.currentProjectId || "My Paper");
+        if (!name) return;
         
-        // const paperState = this.paperEngine ? this.paperEngine.exportState() : {};
+        let thumbnail = '';
+        if (this.paperEngine) {
+            const canvas = document.getElementById('paper-canvas');
+            thumbnail = canvas.toDataURL('image/jpeg', 0.2); // Compressed thumbnail
+        }
+
+        // Gather state
+        const state = {
+            paperColor: this.paperColor,
+            bgEnvironment: this.bgEngine ? this.bgEngine.currentEnv : 'particles',
+            drawingData: this.paperEngine ? this.paperEngine.drawingEngine.getCanvas().toDataURL() : null,
+            thumbnail: thumbnail
+        };
         
         const projectData = {
             id: this.currentProjectId,
-            title: `Paper ${new Date().toLocaleTimeString()}`, // Can be edited later
-            // data: paperState
+            title: name,
+            data: state
         };
 
         try {

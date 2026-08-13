@@ -31,7 +31,16 @@
                 <i class="fa-regular fa-file-lines"></i>
                 <span>Single Paper</span>
             </div>
+            
+            <!-- Main Navigation -->
+            <nav class="main-nav">
+                <button class="nav-btn active" data-mode="create">Create</button>
+                <button class="nav-btn" data-mode="learn">Learn</button>
+                <button class="nav-btn" data-mode="relax">Chill</button>
+            </nav>
+            
             <div class="top-controls">
+                <button id="btn-export" class="icon-btn tooltip" data-tooltip="Export Image"><i class="fa-solid fa-download"></i></button>
                 <button id="btn-projects" class="icon-btn tooltip" data-tooltip="Projects"><i class="fa-solid fa-folder-open"></i></button>
                 <button id="btn-theme" class="icon-btn tooltip" data-tooltip="Toggle Theme"><i class="fa-solid fa-moon"></i></button>
                 <button id="btn-profile" class="icon-btn tooltip" data-tooltip="Profile"><i class="fa-solid fa-user-circle"></i></button>
@@ -248,6 +257,26 @@
     </div>
 
     <!-- Scripts (ES6 Modules) -->
+    <!-- Onboarding Modal -->
+    <div class="modal-overlay hidden" id="modal-onboarding">
+        <div class="modal glass text-center" style="max-width: 500px;">
+            <div class="modal-body" style="padding: 2rem;">
+                <i class="fa-regular fa-file-lines" style="font-size: 4rem; color: var(--accent); margin-bottom: 1rem;"></i>
+                <h1 style="font-size: 2rem; margin-bottom: 1rem;">Welcome to Single Paper</h1>
+                <p style="margin-bottom: 2rem; color: var(--text-muted); line-height: 1.6;">
+                    Your interactive digital paper playground. Here you can:
+                </p>
+                <ul style="text-align: left; margin: 0 auto 2rem auto; display: inline-block; color: var(--text-muted); line-height: 2;">
+                    <li><i class="fa-solid fa-hand-pointer text-accent"></i> Pan, zoom, and tear the paper.</li>
+                    <li><i class="fa-solid fa-pen-nib text-accent"></i> Draw, write, and add stickers.</li>
+                    <li><i class="fa-solid fa-graduation-cap text-accent"></i> Learn origami step-by-step.</li>
+                    <li><i class="fa-solid fa-spa text-accent"></i> Relax, crush paper, and chill.</li>
+                </ul>
+                <button class="btn primary full-width" id="btn-start-onboarding">Start Playing</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="js/main.js"></script>
 </body>
 </html>
