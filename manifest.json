@@ -1,6 +1,6 @@
 {
-  "name": "PaperVerse",
-  "short_name": "PaperVerse",
+  "name": "Single Paper",
+  "short_name": "Single Paper",
   "description": "An interactive digital paper playground.",
   "start_url": "./index.html",
   "display": "standalone",
