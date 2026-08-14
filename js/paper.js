@@ -63,13 +63,14 @@ export class PaperEngine {
     }
 
     centerPaper() {
-        const rect = this.canvas.parentElement.getBoundingClientRect();
+        const w = window.innerWidth;
+        const h = window.innerHeight;
         // Scale to fit ~80% of screen height
-        const scale = (rect.height * 0.8) / this.paperHeight;
+        const scale = (h * 0.8) / this.paperHeight;
         
         this.physics.transform.scale = scale;
-        this.physics.transform.x = (rect.width - (this.paperWidth * scale)) / 2;
-        this.physics.transform.y = (rect.height - (this.paperHeight * scale)) / 2;
+        this.physics.transform.x = (w - (this.paperWidth * scale)) / 2;
+        this.physics.transform.y = (h - (this.paperHeight * scale)) / 2;
         this.physics.transform.rotation = 0;
         this.physics.notifyChange();
     }
