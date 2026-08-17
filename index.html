@@ -1,282 +1,1409 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Single Paper</title>
-    <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#1a1a2e">
-    <meta name="description" content="An interactive digital paper playground.">
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;600;700&family=Caveat:wght@400;600&display=swap" rel="stylesheet">
-    <!-- FontAwesome icons (using CDN for prototype simplicity) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #1a1a2e;
+            --surface: rgba(255,255,255,0.07);
+            --surface-hover: rgba(255,255,255,0.12);
+            --border: rgba(255,255,255,0.1);
+            --text: #f0f0f0;
+            --muted: #888;
+            --accent: #7c6af7;
+            --accent2: #f7a06a;
+            --radius: 14px;
+            --shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100dvh;
+            overflow: hidden;
+            user-select: none;
+            touch-action: none;
+        }
+
+        /* ─── CANVAS ─── */
+        #bg-canvas {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        #paper-canvas, #ui-canvas {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+        }
+        #paper-canvas { z-index: 1; }
+        #ui-canvas    { z-index: 2; cursor: crosshair; }
+
+        /* ─── HEADER ─── */
+        header {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.6rem 1.2rem;
+            background: rgba(20,20,40,0.85);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border);
+        }
+        .logo {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+        }
+        .header-btns {
+            display: flex;
+            gap: 0.4rem;
+        }
+        .hbtn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 8px;
+            padding: 0.4rem 0.75rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+        .hbtn:hover { background: var(--surface-hover); }
+        .hbtn.danger { color: #ff6b6b; }
+
+        /* ─── BOTTOM TOOLBAR ─── */
+        #toolbar {
+            position: fixed;
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            background: rgba(20,20,40,0.9);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 50px;
+            padding: 0.5rem 0.75rem;
+            box-shadow: var(--shadow);
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            max-width: calc(100vw - 2rem);
+        }
+        #toolbar::-webkit-scrollbar { display: none; }
+
+        .tbtn {
+            background: transparent;
+            border: none;
+            color: var(--muted);
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .tbtn:hover { background: var(--surface); color: var(--text); }
+        .tbtn.active { background: var(--accent); color: #fff; }
+        .tbtn.danger-btn { color: #ff6b6b; }
+        .tbtn.danger-btn:hover { background: rgba(255,107,107,0.2); }
+        .tbtn.action-btn { color: var(--accent2); }
+
+        .tb-sep {
+            width: 1px;
+            height: 24px;
+            background: var(--border);
+            flex-shrink: 0;
+        }
+
+        /* color swatch in toolbar */
+        #color-picker-wrap {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            overflow: hidden;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        #color-picker-wrap input {
+            opacity: 0;
+            width: 200%;
+            height: 200%;
+            cursor: pointer;
+            margin: -50%;
+        }
+        #color-dot {
+            position: absolute;
+            width: 26px; height: 26px;
+            border-radius: 50%;
+            background: #000;
+            border: 2px solid rgba(255,255,255,0.3);
+            pointer-events: none;
+        }
+
+        /* size slider */
+        #size-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            flex-shrink: 0;
+        }
+        #brush-size {
+            -webkit-appearance: none;
+            width: 70px;
+            height: 4px;
+            border-radius: 2px;
+            background: var(--surface-hover);
+            outline: none;
+            cursor: pointer;
+        }
+        #brush-size::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px; height: 14px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+        }
+
+        /* ─── TOOLTIPS ─── */
+        .tbtn[data-tip]::after {
+            content: attr(data-tip);
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.85);
+            color: #fff;
+            font-size: 0.7rem;
+            white-space: nowrap;
+            padding: 4px 8px;
+            border-radius: 6px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+        .tbtn[data-tip]:hover::after { opacity: 1; }
+
+        /* ─── COLOR PALETTE ─── */
+        #palette {
+            position: fixed;
+            bottom: 5.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            display: none;
+            gap: 0.4rem;
+            background: rgba(20,20,40,0.95);
+            border: 1px solid var(--border);
+            border-radius: 50px;
+            padding: 0.5rem 0.75rem;
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow);
+        }
+        #palette.open { display: flex; flex-wrap: wrap; justify-content: center; max-width: calc(100vw - 2rem); border-radius: 16px; }
+        .pal-color {
+            width: 30px; height: 30px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: transform 0.15s, border-color 0.15s;
+        }
+        .pal-color:hover { transform: scale(1.15); }
+        .pal-color.sel { border-color: #fff; transform: scale(1.15); }
+
+        /* ─── ORIGAMI PANEL ─── */
+        #origami-panel {
+            position: fixed;
+            right: -320px;
+            top: 60px;
+            bottom: 0;
+            width: 300px;
+            z-index: 100;
+            background: rgba(20,20,40,0.95);
+            backdrop-filter: blur(20px);
+            border-left: 1px solid var(--border);
+            padding: 1.2rem;
+            overflow-y: auto;
+            transition: right 0.35s cubic-bezier(.4,0,.2,1);
+        }
+        #origami-panel.open { right: 0; }
+        #origami-panel h2 { font-size: 1.1rem; margin-bottom: 1rem; }
+        .ori-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.2s;
+        }
+        .ori-card:hover { background: var(--surface-hover); transform: translateY(-2px); }
+        .ori-card h3 { font-size: 0.95rem; margin-bottom: 0.25rem; }
+        .ori-card p  { font-size: 0.78rem; color: var(--muted); }
+        .ori-card .badge {
+            display: inline-block;
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 20px;
+            margin-bottom: 0.5rem;
+        }
+        .badge.easy   { background: rgba(72,199,142,0.2); color: #48c78e; }
+        .badge.medium { background: rgba(255,185,0,0.2);  color: #ffd700; }
+        .badge.hard   { background: rgba(255,80,80,0.2);  color: #ff5050; }
+
+        /* ─── ORIGAMI TUTORIAL ─── */
+        #tut-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        #tut-overlay.open { display: flex; }
+        #tut-box {
+            background: #1e1e35;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            width: min(520px, 95vw);
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+        #tut-close {
+            position: absolute;
+            top: 1rem; right: 1rem;
+            background: var(--surface);
+            border: none;
+            color: var(--text);
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        #tut-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 0.5rem; }
+        #tut-progress { font-size: 0.78rem; color: var(--muted); margin-bottom: 1.2rem; }
+        #tut-canvas-wrap {
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: #fff;
+            border-radius: 12px;
+            margin-bottom: 1.2rem;
+            overflow: hidden;
+            position: relative;
+        }
+        #tut-canvas { width: 100%; height: 100%; display: block; }
+        #tut-instruction {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: var(--text);
+            min-height: 48px;
+            margin-bottom: 1.2rem;
+        }
+        .tut-btns {
+            display: flex;
+            gap: 0.75rem;
+        }
+        .tut-btn {
+            flex: 1;
+            padding: 0.65rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .tut-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        .tut-btn.primary { background: var(--accent); color: #fff; }
+        .tut-btn.secondary { background: var(--surface-hover); color: var(--text); }
+
+        /* ─── WELCOME ─── */
+        #welcome {
+            position: fixed;
+            inset: 0;
+            z-index: 300;
+            background: rgba(0,0,0,0.75);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(8px);
+        }
+        #welcome-box {
+            background: #1e1e35;
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            width: min(460px, 95vw);
+            padding: 2.5rem 2rem;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+        #welcome-box .emoji { font-size: 3.5rem; margin-bottom: 1rem; }
+        #welcome-box h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.75rem; }
+        #welcome-box p { color: var(--muted); font-size: 0.9rem; line-height: 1.7; margin-bottom: 1.5rem; }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.6rem;
+            margin-bottom: 1.75rem;
+            text-align: left;
+        }
+        .feat {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 0.65rem 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.82rem;
+        }
+        .feat span { font-size: 1.2rem; }
+        #name-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            font-size: 0.95rem;
+            margin-bottom: 0.75rem;
+            outline: none;
+            font-family: 'Inter', sans-serif;
+        }
+        #name-input::placeholder { color: var(--muted); }
+        #name-input:focus { border-color: var(--accent); }
+        #start-btn {
+            width: 100%;
+            padding: 0.85rem;
+            border: none;
+            border-radius: 12px;
+            background: var(--accent);
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.15s;
+        }
+        #start-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        #skip-btn {
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 0.8rem;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            text-decoration: underline;
+        }
+
+        /* ─── TOAST ─── */
+        #toast {
+            position: fixed;
+            bottom: 6rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(10px);
+            background: rgba(30,30,50,0.95);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 50px;
+            padding: 0.5rem 1.2rem;
+            font-size: 0.82rem;
+            z-index: 500;
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.3s;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* ─── SCROLLBAR ─── */
+        #origami-panel::-webkit-scrollbar { width: 4px; }
+        #origami-panel::-webkit-scrollbar-track { background: transparent; }
+        #origami-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+        @media (max-width: 600px) {
+            #brush-size { width: 50px; }
+            #toolbar { padding: 0.4rem 0.5rem; gap: 0.25rem; }
+            .tbtn { width: 36px; height: 36px; font-size: 0.9rem; }
+        }
+    </style>
 </head>
 <body>
-    <!-- App Container -->
-    <div id="app-container">
-        
-        <!-- Canvas Layers -->
-        <div id="canvas-container">
-            <canvas id="bg-canvas"></canvas>
-            <canvas id="paper-canvas"></canvas>
-            <!-- Overlay for interactions like folding/tearing hints if needed -->
-            <canvas id="ui-canvas"></canvas>
+
+<!-- ═══ WELCOME SCREEN ═══ -->
+<div id="welcome">
+    <div id="welcome-box">
+        <div class="emoji">📄</div>
+        <h1>Single Paper</h1>
+        <p>One sheet of paper. Draw on it, tear it, crush it, fold it into origami — anything you want!</p>
+        <div class="feature-grid">
+            <div class="feat"><span>✏️</span> Draw & paint</div>
+            <div class="feat"><span>🎨</span> Pick any color</div>
+            <div class="feat"><span>✂️</span> Tear the paper</div>
+            <div class="feat"><span>👊</span> Crush it!</div>
+            <div class="feat"><span>🔄</span> Flip it over</div>
+            <div class="feat"><span>🦢</span> Learn origami</div>
+            <div class="feat"><span>↩️</span> Undo/Redo</div>
+            <div class="feat"><span>💾</span> Save as image</div>
         </div>
-
-        <!-- Header / Top Bar -->
-        <header class="top-bar glass">
-            <div class="logo">
-                <i class="fa-regular fa-file-lines"></i>
-                <span>Single Paper</span>
-            </div>
-            
-            <!-- Main Navigation -->
-            <nav class="main-nav">
-                <button class="nav-btn active" data-mode="create">Create</button>
-                <button class="nav-btn" data-mode="learn">Learn</button>
-                <button class="nav-btn" data-mode="relax">Chill</button>
-            </nav>
-            
-            <div class="top-controls">
-                <button id="btn-export" class="icon-btn tooltip" data-tooltip="Export Image"><i class="fa-solid fa-download"></i></button>
-                <button id="btn-projects" class="icon-btn tooltip" data-tooltip="Projects"><i class="fa-solid fa-folder-open"></i></button>
-                <button id="btn-theme" class="icon-btn tooltip" data-tooltip="Toggle Theme"><i class="fa-solid fa-moon"></i></button>
-                <button id="btn-profile" class="icon-btn tooltip" data-tooltip="Profile"><i class="fa-solid fa-user-circle"></i></button>
-            </div>
-        </header>
-
-        <!-- Main Toolbar (Tools) -->
-        <aside class="toolbar side-panel glass" id="main-toolbar">
-            <div class="tool-group">
-                <button class="tool-btn active tooltip" data-tool="interact" data-tooltip="Interact (Pan/Zoom)"><i class="fa-solid fa-hand"></i></button>
-                <button class="tool-btn tooltip" data-tool="draw" data-tooltip="Draw (Pen)"><i class="fa-solid fa-pen"></i></button>
-                <button class="tool-btn tooltip" data-tool="pencil" data-tooltip="Pencil"><i class="fa-solid fa-pencil"></i></button>
-                <button class="tool-btn tooltip" data-tool="marker" data-tooltip="Marker"><i class="fa-solid fa-highlighter"></i></button>
-                <button class="tool-btn tooltip" data-tool="erase" data-tooltip="Eraser"><i class="fa-solid fa-eraser"></i></button>
-                <button class="tool-btn tooltip" data-tool="text" data-tooltip="Add Text"><i class="fa-solid fa-font"></i></button>
-                <button class="tool-btn tooltip" data-tool="sticker" data-tooltip="Stickers"><i class="fa-solid fa-note-sticky"></i></button>
-                <button class="tool-btn tooltip" data-tool="tear" data-tooltip="Tear Paper"><i class="fa-solid fa-scissors"></i></button>
-            </div>
-            
-            <div class="tool-separator"></div>
-            
-            <div class="tool-group">
-                <button class="tool-btn action-btn tooltip" data-action="undo" data-tooltip="Undo"><i class="fa-solid fa-rotate-left"></i></button>
-                <button class="tool-btn action-btn tooltip" data-action="redo" data-tooltip="Redo"><i class="fa-solid fa-rotate-right"></i></button>
-                <button class="tool-btn action-btn tooltip" data-action="flip" data-tooltip="Flip Paper"><i class="fa-solid fa-arrows-rotate"></i></button>
-                <button class="tool-btn action-btn tooltip" data-action="crush" data-tooltip="Crush Paper"><i class="fa-solid fa-hand-fist"></i></button>
-                <button class="tool-btn action-btn tooltip text-danger" data-action="clear" data-tooltip="Clear Drawing"><i class="fa-solid fa-trash-can"></i></button>
-            </div>
-
-            <div class="tool-separator"></div>
-
-            <div class="tool-group tool-settings">
-                <div class="color-picker-wrap tooltip" data-tooltip="Color">
-                    <input type="color" id="brush-color" value="#000000">
-                </div>
-                <div class="slider-wrap tooltip" data-tooltip="Size">
-                    <i class="fa-solid fa-circle" style="font-size: 0.5rem"></i>
-                    <input type="range" id="brush-size" min="1" max="50" value="5">
-                </div>
-            </div>
-        </aside>
-
-        <!-- Right Side Panel (Paper Customization & Origami) -->
-        <aside class="right-panel glass" id="right-panel">
-            <div class="tabs">
-                <button class="tab-btn active" data-target="panel-paper">Paper</button>
-                <button class="tab-btn" data-target="panel-origami">Origami</button>
-                <button class="tab-btn" data-target="panel-layers">Layers</button>
-            </div>
-
-            <div class="tab-content active" id="panel-paper">
-                <h3>Paper Properties</h3>
-                <div class="property-group">
-                    <label>Color</label>
-                    <div class="preset-colors">
-                        <button class="color-preset active" style="background: #ffffff" data-color="#ffffff"></button>
-                        <button class="color-preset" style="background: #fdf6e3" data-color="#fdf6e3"></button>
-                        <button class="color-preset" style="background: #d4a373" data-color="#d4a373"></button>
-                        <button class="color-preset" style="background: #a2d2ff" data-color="#a2d2ff"></button>
-                        <button class="color-preset" style="background: #ffc8dd" data-color="#ffc8dd"></button>
-                        <button class="color-preset" style="background: #b7e4c7" data-color="#b7e4c7"></button>
-                        <button class="color-preset" style="background: #1a1a1a" data-color="#1a1a1a"></button>
-                        <input type="color" id="custom-paper-color" class="color-custom" value="#ffffff">
-                    </div>
-                </div>
-                
-                <div class="property-group">
-                    <label>Texture</label>
-                    <select id="paper-texture">
-                        <option value="smooth">Smooth</option>
-                        <option value="craft">Craft</option>
-                        <option value="watercolor">Watercolor</option>
-                        <option value="crumpled">Crumpled</option>
-                        <option value="vintage">Vintage</option>
-                    </select>
-                </div>
-                
-                <div class="property-group">
-                    <label>Background Environment</label>
-                    <select id="bg-environment">
-                        <option value="particles">Floating Particles</option>
-                        <option value="mesh">Mesh Gradient</option>
-                        <option value="stars">Galaxy Stars</option>
-                        <option value="waves">Abstract Waves</option>
-                        <option value="solid">Solid Dark</option>
-                    </select>
-                </div>
-
-                <div class="property-group">
-                    <label>Adjustments</label>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; font-size: 0.8rem; color: var(--text-muted);">
-                        <span>Brightness</span>
-                        <input type="range" id="paper-brightness" min="0.5" max="1.5" step="0.1" value="1" style="width: 60%;">
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; font-size: 0.8rem; color: var(--text-muted);">
-                        <span>Contrast</span>
-                        <input type="range" id="paper-contrast" min="0.5" max="1.5" step="0.1" value="1" style="width: 60%;">
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-muted);">
-                        <span>Opacity</span>
-                        <input type="range" id="paper-opacity" min="0.1" max="1" step="0.1" value="1" style="width: 60%;">
-                    </div>
-                </div>
-
-                <div class="property-group actions">
-                    <button class="btn secondary" id="btn-reset-paper">Reset Paper</button>
-                </div>
-            </div>
-
-            <div class="tab-content" id="panel-origami">
-                <h3>Origami Library</h3>
-                <div class="origami-list" id="origami-list">
-                    <!-- Populated by JS -->
-                </div>
-            </div>
-
-            <div class="tab-content" id="panel-layers">
-                <h3>Layers</h3>
-                <ul class="layer-list" id="layer-list">
-                    <!-- Populated by JS -->
-                </ul>
-            </div>
-        </aside>
-
-        <!-- Origami Tutorial Overlay (Hidden by default) -->
-        <div id="origami-tutorial-overlay" class="glass-heavy hidden">
-            <div class="tutorial-header">
-                <h2 id="tutorial-title">Paper Boat</h2>
-                <button id="btn-close-tutorial" class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div class="tutorial-content">
-                <div class="step-indicator" id="tutorial-step-indicator">Step 1 of 5</div>
-                <p id="tutorial-instruction">Fold the paper in half.</p>
-                <div class="tutorial-animation" id="tutorial-animation-container">
-                    <!-- Animation canvas or SVG goes here -->
-                </div>
-            </div>
-            <div class="tutorial-controls">
-                <button id="btn-tut-prev" class="btn secondary" disabled>Previous</button>
-                <button id="btn-tut-restart" class="btn secondary"><i class="fa-solid fa-arrow-rotate-left"></i></button>
-                <button id="btn-tut-next" class="btn primary">Next</button>
-            </div>
-        </div>
-
-        <!-- Chatbot / Assistant Widget -->
-        <div class="chatbot-widget collapsed" id="chatbot">
-            <div class="chatbot-header" id="chatbot-header">
-                <div class="chatbot-title">
-                    <i class="fa-solid fa-robot"></i> Paper Ideas
-                </div>
-                <button class="icon-btn"><i class="fa-solid fa-chevron-up toggle-icon"></i></button>
-            </div>
-            <div class="chatbot-body">
-                <div class="chat-history" id="chat-history">
-                    <div class="chat-msg bot">Hi! I can suggest origami ideas, drawing challenges, or paper games. What would you like to do?</div>
-                </div>
-                <div class="chat-suggestions">
-                    <button class="chip" data-query="origami">Origami idea</button>
-                    <button class="chip" data-query="drawing">Drawing challenge</button>
-                    <button class="chip" data-query="surprise">Surprise me</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modals -->
-        
-        <!-- Profile/Login Modal -->
-        <div class="modal-overlay hidden" id="modal-profile">
-            <div class="modal glass">
-                <div class="modal-header">
-                    <h2>Welcome to Single Paper</h2>
-                    <button class="icon-btn close-modal"><i class="fa-solid fa-xmark"></i></button>
-                </div>
-                <div class="modal-body">
-                    <div id="profile-login-view">
-                        <p>Create a local profile to save your projects across sessions.</p>
-                        <input type="text" id="input-username" placeholder="Choose a username..." class="form-input">
-                        <button id="btn-login" class="btn primary full-width">Enter Playground</button>
-                    </div>
-                    <div id="profile-active-view" class="hidden">
-                        <div class="profile-info">
-                            <div class="avatar"><i class="fa-solid fa-user"></i></div>
-                            <h3 id="display-username">User</h3>
-                        </div>
-                        <div class="stats">
-                            <div class="stat"><span id="stat-projects">0</span> Projects</div>
-                        </div>
-                        <button id="btn-logout" class="btn secondary full-width mt-4">Switch Profile</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Projects Modal -->
-        <div class="modal-overlay hidden" id="modal-projects">
-            <div class="modal glass modal-lg">
-                <div class="modal-header">
-                    <h2>Your Projects</h2>
-                    <button class="icon-btn close-modal"><i class="fa-solid fa-xmark"></i></button>
-                </div>
-                <div class="modal-body">
-                    <div class="projects-actions">
-                        <button id="btn-new-project" class="btn primary"><i class="fa-solid fa-plus"></i> New Project</button>
-                        <button id="btn-save-project" class="btn secondary"><i class="fa-solid fa-floppy-disk"></i> Save Current</button>
-                    </div>
-                    <div class="projects-grid" id="projects-list">
-                        <!-- Populated by JS -->
-                        <div class="empty-state">No saved projects yet.</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
+        <input id="name-input" type="text" placeholder="Your name (optional)..." maxlength="20">
+        <button id="start-btn">Start Playing 🎉</button>
+        <br>
+        <button id="skip-btn">Skip</button>
     </div>
+</div>
 
-    <!-- Scripts (ES6 Modules) -->
-    <!-- Onboarding Modal -->
-    <div class="modal-overlay hidden" id="modal-onboarding">
-        <div class="modal glass text-center" style="max-width: 500px;">
-            <div class="modal-body" style="padding: 2rem;">
-                <i class="fa-regular fa-file-lines" style="font-size: 4rem; color: var(--accent); margin-bottom: 1rem;"></i>
-                <h1 style="font-size: 2rem; margin-bottom: 1rem;">Welcome to Single Paper</h1>
-                <p style="margin-bottom: 2rem; color: var(--text-muted); line-height: 1.6;">
-                    Your interactive digital paper playground. Here you can:
-                </p>
-                <ul style="text-align: left; margin: 0 auto 2rem auto; display: inline-block; color: var(--text-muted); line-height: 2;">
-                    <li><i class="fa-solid fa-hand-pointer text-accent"></i> Pan, zoom, and tear the paper.</li>
-                    <li><i class="fa-solid fa-pen-nib text-accent"></i> Draw, write, and add stickers.</li>
-                    <li><i class="fa-solid fa-graduation-cap text-accent"></i> Learn origami step-by-step.</li>
-                    <li><i class="fa-solid fa-spa text-accent"></i> Relax, crush paper, and chill.</li>
-                </ul>
-                <button class="btn primary full-width" id="btn-start-onboarding">Start Playing</button>
-            </div>
+<!-- ═══ BACKGROUND ═══ -->
+<canvas id="bg-canvas"></canvas>
+
+<!-- ═══ PAPER ═══ -->
+<canvas id="paper-canvas"></canvas>
+<canvas id="ui-canvas"></canvas>
+
+<!-- ═══ HEADER ═══ -->
+<header>
+    <div class="logo">📄 <span id="user-label">Single Paper</span></div>
+    <div class="header-btns">
+        <button class="hbtn" id="btn-origami">🦢 Origami</button>
+        <button class="hbtn" id="btn-save">💾 Save</button>
+        <button class="hbtn danger" id="btn-reset">🗑 Reset</button>
+    </div>
+</header>
+
+<!-- ═══ COLOR PALETTE ═══ -->
+<div id="palette"></div>
+
+<!-- ═══ BOTTOM TOOLBAR ═══ -->
+<div id="toolbar">
+    <!-- Pan -->
+    <button class="tbtn active" id="tool-pan" data-tip="Move Paper">🖐</button>
+    <div class="tb-sep"></div>
+    <!-- Draw tools -->
+    <button class="tbtn" id="tool-pen" data-tip="Pen">🖊</button>
+    <button class="tbtn" id="tool-pencil" data-tip="Pencil">✏️</button>
+    <button class="tbtn" id="tool-marker" data-tip="Marker">🖌</button>
+    <button class="tbtn" id="tool-eraser" data-tip="Eraser">🧹</button>
+    <!-- Color -->
+    <div style="position:relative; display:flex; align-items:center; flex-shrink:0;">
+        <div id="color-dot"></div>
+        <div id="color-picker-wrap">
+            <input type="color" id="brush-color" value="#000000">
         </div>
     </div>
+    <button class="tbtn" id="btn-palette" data-tip="Colors">🎨</button>
+    <!-- Size -->
+    <div id="size-wrap">
+        <input type="range" id="brush-size" min="1" max="40" value="5">
+    </div>
+    <div class="tb-sep"></div>
+    <!-- Paper actions -->
+    <button class="tbtn action-btn" id="tool-tear" data-tip="Tear Paper">✂️</button>
+    <button class="tbtn action-btn" id="btn-crush" data-tip="Crush Paper">👊</button>
+    <button class="tbtn action-btn" id="btn-flip" data-tip="Flip Paper">🔄</button>
+    <div class="tb-sep"></div>
+    <!-- History -->
+    <button class="tbtn" id="btn-undo" data-tip="Undo">↩️</button>
+    <button class="tbtn" id="btn-redo" data-tip="Redo">↪️</button>
+</div>
 
-    <script type="module" src="js/main.js"></script>
+<!-- ═══ ORIGAMI PANEL ═══ -->
+<div id="origami-panel">
+    <h2>🦢 Origami</h2>
+    <p style="font-size:0.8rem;color:var(--muted);margin-bottom:1rem;">Tap a model to learn step-by-step</p>
+    <div id="ori-list"></div>
+</div>
+
+<!-- ═══ ORIGAMI TUTORIAL ═══ -->
+<div id="tut-overlay">
+    <div id="tut-box">
+        <button id="tut-close">✕</button>
+        <div id="tut-title"></div>
+        <div id="tut-progress"></div>
+        <div id="tut-canvas-wrap"><canvas id="tut-canvas"></canvas></div>
+        <div id="tut-instruction"></div>
+        <div class="tut-btns">
+            <button class="tut-btn secondary" id="tut-prev">← Prev</button>
+            <button class="tut-btn primary"  id="tut-next">Next →</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ TOAST ═══ -->
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  SINGLE PAPER — All-in-one clean implementation
+// ═══════════════════════════════════════════════════════════
+
+const bgCanvas    = document.getElementById('bg-canvas');
+const paperCanvas = document.getElementById('paper-canvas');
+const uiCanvas    = document.getElementById('ui-canvas');
+const bgCtx    = bgCanvas.getContext('2d');
+const paperCtx = paperCanvas.getContext('2d');
+const uiCtx    = uiCanvas.getContext('2d');
+
+// ─── SIZES ───────────────────────────────────────────────
+const PAPER_W = 595, PAPER_H = 842; // A4 proportions
+
+function resize() {
+    [bgCanvas, paperCanvas, uiCanvas].forEach(c => {
+        c.width  = window.innerWidth;
+        c.height = window.innerHeight;
+    });
+    renderBg();
+    renderPaper();
+}
+window.addEventListener('resize', resize);
+
+// ─── STATE ───────────────────────────────────────────────
+const state = {
+    // Transform
+    tx: 0, ty: 0, scale: 1, rot: 0,
+    flipped: false,
+
+    // Tool
+    tool: 'pan',         // pan | pen | pencil | marker | eraser | tear
+    color: '#000000',
+    size: 5,
+
+    // Paper
+    crushLevel: 0,       // 0–5
+    paperColor: '#ffffff',
+    isTorn: false,
+
+    // Interaction
+    dragging: false,
+    drawing: false,
+    tearing: false,
+    lastX: 0, lastY: 0,
+    pinching: false,
+    pinchDist: 0,
+    pinchMidX: 0, pinchMidY: 0,
+    pinchScale0: 0,
+    pinchTx0: 0, pinchTy0: 0,
+};
+
+// Drawing canvas (offscreen — holds all drawing)
+const drawCanvas = document.createElement('canvas');
+drawCanvas.width  = PAPER_W;
+drawCanvas.height = PAPER_H;
+const drawCtx = drawCanvas.getContext('2d');
+
+// Tear mask canvas (offscreen)
+const tearCanvas = document.createElement('canvas');
+tearCanvas.width  = PAPER_W;
+tearCanvas.height = PAPER_H;
+const tearCtx = tearCanvas.getContext('2d');
+tearCtx.fillStyle = '#fff';
+tearCtx.fillRect(0, 0, PAPER_W, PAPER_H);
+
+// Undo stack
+const undoStack = [];
+const redoStack = [];
+function saveSnapshot() {
+    undoStack.push(drawCanvas.toDataURL());
+    if (undoStack.length > 30) undoStack.shift();
+    redoStack.length = 0;
+}
+function undo() {
+    if (!undoStack.length) return;
+    redoStack.push(drawCanvas.toDataURL());
+    const img = new Image();
+    img.onload = () => { drawCtx.clearRect(0,0,PAPER_W,PAPER_H); drawCtx.drawImage(img,0,0); renderPaper(); };
+    img.src = undoStack.pop();
+    toast('Undo ↩️');
+}
+function redo() {
+    if (!redoStack.length) return;
+    undoStack.push(drawCanvas.toDataURL());
+    const img = new Image();
+    img.onload = () => { drawCtx.clearRect(0,0,PAPER_W,PAPER_H); drawCtx.drawImage(img,0,0); renderPaper(); };
+    img.src = redoStack.pop();
+    toast('Redo ↪️');
+}
+
+// ─── CENTER PAPER ─────────────────────────────────────────
+function centerPaper() {
+    const maxW = window.innerWidth  * 0.78;
+    const maxH = (window.innerHeight - 120) * 0.9;
+    state.scale = Math.min(maxW / PAPER_W, maxH / PAPER_H, 1);
+    state.tx = (window.innerWidth  - PAPER_W * state.scale) / 2;
+    state.ty = (window.innerHeight - PAPER_H * state.scale) / 2 + 10;
+    state.rot = 0;
+    state.flipped = false;
+}
+
+// ─── BACKGROUND ───────────────────────────────────────────
+let bgFrame = 0;
+const bgParticles = Array.from({length: 60}, () => ({
+    x: Math.random() * 2000, y: Math.random() * 2000,
+    r: Math.random() * 2.5 + 0.5,
+    vx: (Math.random() - 0.5) * 0.4,
+    vy: (Math.random() - 0.5) * 0.4,
+    a: Math.random() * 0.5 + 0.1
+}));
+
+function renderBg() {
+    const w = bgCanvas.width, h = bgCanvas.height;
+    bgCtx.clearRect(0, 0, w, h);
+    // gradient bg
+    const g = bgCtx.createLinearGradient(0, 0, w, h);
+    g.addColorStop(0,   '#0f0f23');
+    g.addColorStop(0.5, '#1a1a2e');
+    g.addColorStop(1,   '#16213e');
+    bgCtx.fillStyle = g;
+    bgCtx.fillRect(0, 0, w, h);
+    // particles
+    bgParticles.forEach(p => {
+        p.x = ((p.x + p.vx + 2000) % w) || p.x;
+        p.y = ((p.y + p.vy + 2000) % h) || p.y;
+        bgCtx.beginPath();
+        bgCtx.arc(p.x % w, p.y % h, p.r, 0, Math.PI * 2);
+        bgCtx.fillStyle = `rgba(124,106,247,${p.a})`;
+        bgCtx.fill();
+    });
+}
+
+// ─── PAPER RENDERING ──────────────────────────────────────
+function renderPaper() {
+    const W = paperCanvas.width, H = paperCanvas.height;
+    paperCtx.clearRect(0, 0, W, H);
+
+    paperCtx.save();
+
+    // Apply transform
+    const cx = state.tx + (PAPER_W * state.scale) / 2;
+    const cy = state.ty + (PAPER_H * state.scale) / 2;
+    paperCtx.translate(cx, cy);
+    paperCtx.rotate(state.rot);
+    if (state.flipped) paperCtx.scale(-1, 1);
+    paperCtx.translate(-cx, -cy);
+    paperCtx.translate(state.tx, state.ty);
+    paperCtx.scale(state.scale, state.scale);
+
+    // Shadow
+    paperCtx.shadowColor = 'rgba(0,0,0,0.45)';
+    paperCtx.shadowBlur  = 40;
+    paperCtx.shadowOffsetX = 8;
+    paperCtx.shadowOffsetY = 12;
+
+    // Clip to tear mask
+    const clipImg = new Image();
+    // Use tear canvas as clip
+    // Draw paper base
+    paperCtx.shadowColor = 'rgba(0,0,0,0.45)';
+
+    // Paper fill
+    paperCtx.fillStyle = state.paperColor;
+    paperCtx.fillRect(0, 0, PAPER_W, PAPER_H);
+
+    // Crush texture overlay
+    if (state.crushLevel > 0) {
+        drawCrushTexture(paperCtx);
+    }
+
+    // Paper texture lines (subtle ruled lines)
+    paperCtx.globalAlpha = 0.04;
+    for (let y = 30; y < PAPER_H; y += 30) {
+        paperCtx.strokeStyle = '#000';
+        paperCtx.lineWidth = 0.5;
+        paperCtx.beginPath();
+        paperCtx.moveTo(0, y); paperCtx.lineTo(PAPER_W, y);
+        paperCtx.stroke();
+    }
+    paperCtx.globalAlpha = 1;
+
+    // Draw layer
+    paperCtx.shadowColor = 'transparent';
+    paperCtx.shadowBlur = 0;
+    paperCtx.shadowOffsetX = 0;
+    paperCtx.shadowOffsetY = 0;
+    paperCtx.drawImage(drawCanvas, 0, 0);
+
+    // Tear mask (destination-out)
+    paperCtx.globalCompositeOperation = 'destination-out';
+    paperCtx.drawImage(tearCanvas, 0, 0);
+    paperCtx.globalCompositeOperation = 'source-over';
+
+    // Fold shadow lines
+    drawFoldLines(paperCtx);
+
+    // Paper edge border
+    paperCtx.strokeStyle = 'rgba(0,0,0,0.15)';
+    paperCtx.lineWidth = 1;
+    paperCtx.strokeRect(0, 0, PAPER_W, PAPER_H);
+
+    paperCtx.restore();
+}
+
+function drawCrushTexture(ctx) {
+    const level = state.crushLevel;
+    ctx.save();
+    ctx.globalAlpha = level * 0.12;
+    for (let i = 0; i < level * 18; i++) {
+        const x = Math.sin(i * 137.5 + level) * PAPER_W * 0.4 + PAPER_W / 2;
+        const y = Math.cos(i * 87.3  + level) * PAPER_H * 0.4 + PAPER_H / 2;
+        const len = 30 + Math.random() * 80;
+        const ang = Math.random() * Math.PI;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + Math.cos(ang) * len, y + Math.sin(ang) * len);
+        ctx.strokeStyle = `rgba(0,0,0,${0.1 + level * 0.08})`;
+        ctx.lineWidth = 0.5 + Math.random();
+        ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+}
+
+const foldLines = [];
+function drawFoldLines(ctx) {
+    foldLines.forEach(f => {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.moveTo(f.x1, f.y1);
+        ctx.lineTo(f.x2, f.y2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+    });
+}
+
+// ─── ANIMATION LOOP ───────────────────────────────────────
+function loop() {
+    bgFrame++;
+    renderBg();
+    renderPaper();
+    requestAnimationFrame(loop);
+}
+
+// ─── POINTER UTILS ────────────────────────────────────────
+function screenToPaper(sx, sy) {
+    // Reverse: translate, scale, rotate
+    const cx = state.tx + (PAPER_W * state.scale) / 2;
+    const cy = state.ty + (PAPER_H * state.scale) / 2;
+    let x = sx - cx;
+    let y = sy - cy;
+    if (state.flipped) x = -x;
+    const cos = Math.cos(-state.rot);
+    const sin = Math.sin(-state.rot);
+    const rx = x * cos - y * sin;
+    const ry = x * sin + y * cos;
+    x = rx / state.scale;
+    y = ry / state.scale;
+    return { x, y };
+}
+
+function inPaper(sx, sy) {
+    const p = screenToPaper(sx, sy);
+    return p.x >= 0 && p.x <= PAPER_W && p.y >= 0 && p.y <= PAPER_H;
+}
+
+// ─── AUDIO ────────────────────────────────────────────────
+let audioCtx;
+function getAudio() {
+    if (!audioCtx) {
+        try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+}
+
+function playCrush() {
+    const ac = getAudio(); if (!ac) return;
+    const buf = ac.createBuffer(1, ac.sampleRate * 0.6, ac.sampleRate);
+    const d = buf.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < d.length; i++) {
+        const w = (Math.random() * 2 - 1);
+        last = last + 0.02 * w; last /= 1.02; d[i] = last * 4;
+    }
+    const src = ac.createBufferSource();
+    src.buffer = buf;
+    const f = ac.createBiquadFilter();
+    f.type = 'lowpass'; f.frequency.value = 1200;
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.7, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01, ac.currentTime + 0.6);
+    src.connect(f); f.connect(g); g.connect(ac.destination);
+    src.start();
+}
+
+let tearSrc = null, tearGain = null;
+function startTearSound() {
+    const ac = getAudio(); if (!ac || tearSrc) return;
+    const buf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    tearSrc = ac.createBufferSource();
+    tearSrc.buffer = buf; tearSrc.loop = true;
+    const f = ac.createBiquadFilter();
+    f.type = 'highpass'; f.frequency.value = 3000;
+    tearGain = ac.createGain();
+    tearGain.gain.setValueAtTime(0, ac.currentTime);
+    tearGain.gain.linearRampToValueAtTime(0.4, ac.currentTime + 0.05);
+    tearSrc.connect(f); f.connect(tearGain); tearGain.connect(ac.destination);
+    tearSrc.start();
+}
+function stopTearSound() {
+    if (!tearSrc) return;
+    try { tearGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1); }
+    catch(e) {}
+    const s = tearSrc; tearSrc = null;
+    setTimeout(() => { try { s.stop(); } catch(e){} }, 150);
+}
+
+// ─── DRAWING ──────────────────────────────────────────────
+let isStroking = false;
+function startDraw(sx, sy) {
+    const p = screenToPaper(sx, sy);
+    if (p.x < 0 || p.x > PAPER_W || p.y < 0 || p.y > PAPER_H) return;
+    saveSnapshot();
+    isStroking = true;
+    drawCtx.beginPath();
+    drawCtx.moveTo(p.x, p.y);
+    applyBrushStyle();
+}
+function continueDraw(sx, sy) {
+    if (!isStroking) return;
+    const p = screenToPaper(sx, sy);
+    if (state.tool === 'eraser') {
+        drawCtx.globalCompositeOperation = 'destination-out';
+        drawCtx.beginPath();
+        drawCtx.arc(p.x, p.y, state.size * 2, 0, Math.PI * 2);
+        drawCtx.fill();
+        drawCtx.globalCompositeOperation = 'source-over';
+    } else {
+        drawCtx.lineTo(p.x, p.y);
+        drawCtx.stroke();
+    }
+}
+function endDraw() { isStroking = false; }
+
+function applyBrushStyle() {
+    drawCtx.globalCompositeOperation = 'source-over';
+    drawCtx.strokeStyle = state.color;
+    drawCtx.lineWidth  = state.size;
+    drawCtx.lineCap    = 'round';
+    drawCtx.lineJoin   = 'round';
+    if (state.tool === 'pencil') {
+        drawCtx.globalAlpha = 0.65;
+        drawCtx.lineWidth   = state.size * 0.7;
+    } else if (state.tool === 'marker') {
+        drawCtx.globalAlpha = 0.45;
+        drawCtx.lineWidth   = state.size * 3;
+    } else {
+        drawCtx.globalAlpha = 1;
+    }
+}
+
+// ─── TEARING ──────────────────────────────────────────────
+let tearPath = null;
+function startTear(sx, sy) {
+    const p = screenToPaper(sx, sy);
+    if (p.x < 0 || p.x > PAPER_W || p.y < 0 || p.y > PAPER_H) return;
+    tearPath = { x: p.x, y: p.y };
+    tearCtx.globalCompositeOperation = 'destination-out';
+    tearCtx.strokeStyle = '#000';
+    tearCtx.lineWidth = 18;
+    tearCtx.lineCap = 'round';
+    tearCtx.beginPath();
+    tearCtx.moveTo(p.x, p.y);
+    startTearSound();
+}
+function continueTear(sx, sy) {
+    if (!tearPath) return;
+    const p = screenToPaper(sx, sy);
+    const nx = p.x + (Math.random() - 0.5) * 14;
+    const ny = p.y + (Math.random() - 0.5) * 14;
+    tearCtx.lineTo(nx, ny);
+    tearCtx.stroke();
+    tearPath = { x: p.x, y: p.y };
+}
+function endTear() {
+    if (!tearPath) return;
+    tearPath = null;
+    tearCtx.globalCompositeOperation = 'source-over';
+    stopTearSound();
+    toast('Paper torn! ✂️');
+}
+
+// ─── POINTER EVENTS ───────────────────────────────────────
+const activePointers = new Map();
+let panStart = null;
+
+uiCanvas.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    uiCanvas.setPointerCapture(e.pointerId);
+    activePointers.set(e.pointerId, {x: e.clientX, y: e.clientY});
+
+    if (activePointers.size === 2) {
+        // Pinch start
+        const pts = [...activePointers.values()];
+        state.pinchDist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+        state.pinchMidX = (pts[0].x + pts[1].x) / 2;
+        state.pinchMidY = (pts[0].y + pts[1].y) / 2;
+        state.pinchScale0 = state.scale;
+        state.pinchTx0 = state.tx;
+        state.pinchTy0 = state.ty;
+        state.pinching = true;
+        return;
+    }
+
+    if (state.tool === 'pan') {
+        panStart = { sx: e.clientX, sy: e.clientY, tx: state.tx, ty: state.ty };
+    } else if (state.tool === 'tear') {
+        startTear(e.clientX, e.clientY);
+    } else if (['pen','pencil','marker','eraser'].includes(state.tool)) {
+        startDraw(e.clientX, e.clientY);
+    }
+}, {passive: false});
+
+uiCanvas.addEventListener('pointermove', e => {
+    e.preventDefault();
+    activePointers.set(e.pointerId, {x: e.clientX, y: e.clientY});
+
+    if (state.pinching && activePointers.size === 2) {
+        const pts = [...activePointers.values()];
+        const dist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+        const midX = (pts[0].x + pts[1].x) / 2;
+        const midY = (pts[0].y + pts[1].y) / 2;
+        const ratio = dist / state.pinchDist;
+        const newScale = Math.max(0.2, Math.min(4, state.pinchScale0 * ratio));
+        // Zoom around pinch center
+        state.tx = midX - (state.pinchMidX - state.pinchTx0) * ratio - (PAPER_W * newScale) / 2 + (PAPER_W * state.pinchScale0) / 2;
+        state.ty = midY - (state.pinchMidY - state.pinchTy0) * ratio - (PAPER_H * newScale) / 2 + (PAPER_H * state.pinchScale0) / 2;
+        state.scale = newScale;
+        return;
+    }
+
+    if (state.tool === 'pan' && panStart) {
+        state.tx = panStart.tx + (e.clientX - panStart.sx);
+        state.ty = panStart.ty + (e.clientY - panStart.sy);
+    } else if (state.tool === 'tear') {
+        continueTear(e.clientX, e.clientY);
+    } else if (['pen','pencil','marker','eraser'].includes(state.tool)) {
+        continueDraw(e.clientX, e.clientY);
+    }
+}, {passive: false});
+
+const endPointer = e => {
+    e.preventDefault();
+    activePointers.delete(e.pointerId);
+    if (activePointers.size < 2) state.pinching = false;
+    if (activePointers.size === 0) {
+        panStart = null;
+        endDraw();
+        endTear();
+    }
+};
+uiCanvas.addEventListener('pointerup',     endPointer, {passive: false});
+uiCanvas.addEventListener('pointercancel', endPointer, {passive: false});
+
+// Wheel zoom
+uiCanvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    const delta = -e.deltaY * 0.001;
+    const newScale = Math.max(0.2, Math.min(4, state.scale * Math.exp(delta)));
+    // Zoom around cursor
+    const ratio = newScale / state.scale;
+    state.tx = e.clientX - (e.clientX - state.tx) * ratio;
+    state.ty = e.clientY - (e.clientY - state.ty) * ratio;
+    state.scale = newScale;
+}, {passive: false});
+
+// Cursor style
+uiCanvas.addEventListener('pointermove', e => {
+    if (state.tool === 'pan') uiCanvas.style.cursor = panStart ? 'grabbing' : 'grab';
+    else if (state.tool === 'eraser') uiCanvas.style.cursor = 'cell';
+    else if (state.tool === 'tear') uiCanvas.style.cursor = 'crosshair';
+    else uiCanvas.style.cursor = 'crosshair';
+});
+
+// ─── TOOL BUTTONS ─────────────────────────────────────────
+const toolMap = {
+    'tool-pan': 'pan', 'tool-pen': 'pen', 'tool-pencil': 'pencil',
+    'tool-marker': 'marker', 'tool-eraser': 'eraser', 'tool-tear': 'tear'
+};
+Object.entries(toolMap).forEach(([id, tool]) => {
+    document.getElementById(id).addEventListener('click', () => {
+        state.tool = tool;
+        Object.keys(toolMap).forEach(k => document.getElementById(k).classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        closePalette();
+    });
+});
+
+document.getElementById('btn-undo').addEventListener('click', undo);
+document.getElementById('btn-redo').addEventListener('click', redo);
+
+document.getElementById('btn-flip').addEventListener('click', () => {
+    state.flipped = !state.flipped;
+    toast(state.flipped ? 'Flipped! 🔄' : 'Flipped back!');
+});
+
+document.getElementById('btn-crush').addEventListener('click', () => {
+    if (state.crushLevel >= 5) { toast('Already crushed! 👊'); return; }
+    state.crushLevel++;
+    playCrush();
+    toast(['Crunch! 👊', 'More crumples! 👊👊', 'So crushed! 🗑', 'Totally wrecked! 😂', 'Maximum crumple!'][state.crushLevel - 1]);
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+    if (!confirm('Reset the paper? All drawings will be cleared.')) return;
+    drawCtx.clearRect(0, 0, PAPER_W, PAPER_H);
+    tearCtx.globalCompositeOperation = 'source-over';
+    tearCtx.fillStyle = '#fff';
+    tearCtx.fillRect(0, 0, PAPER_W, PAPER_H);
+    state.crushLevel = 0;
+    state.flipped    = false;
+    foldLines.length = 0;
+    undoStack.length = 0;
+    redoStack.length = 0;
+    centerPaper();
+    toast('Paper reset! 🆕');
+});
+
+document.getElementById('btn-save').addEventListener('click', () => {
+    // Composite: render to temp canvas
+    const tmp = document.createElement('canvas');
+    tmp.width = PAPER_W; tmp.height = PAPER_H;
+    const tc = tmp.getContext('2d');
+    tc.fillStyle = state.paperColor;
+    tc.fillRect(0, 0, PAPER_W, PAPER_H);
+    tc.drawImage(drawCanvas, 0, 0);
+    // Apply tear mask
+    tc.globalCompositeOperation = 'destination-out';
+    tc.drawImage(tearCanvas, 0, 0);
+    tc.globalCompositeOperation = 'source-over';
+    const link = document.createElement('a');
+    link.download = 'single-paper.png';
+    link.href = tmp.toDataURL('image/png');
+    link.click();
+    toast('Saved! 💾');
+});
+
+// ─── COLOR ────────────────────────────────────────────────
+const PALETTE_COLORS = [
+    '#000000','#ffffff','#ff4757','#ff6b81','#ffa502','#ffd32a',
+    '#2ed573','#26de81','#1e90ff','#70a1ff','#a29bfe','#fd79a8',
+    '#6c5ce7','#00b894','#fdcb6e','#e17055','#636e72','#b2bec3',
+    '#2c3e50','#8e44ad'
+];
+
+const palette = document.getElementById('palette');
+PALETTE_COLORS.forEach(c => {
+    const btn = document.createElement('div');
+    btn.className = 'pal-color';
+    btn.style.background = c;
+    btn.style.border = c === '#ffffff' ? '1px solid #888' : '';
+    btn.addEventListener('click', () => {
+        state.color = c;
+        updateColorDot();
+        document.getElementById('brush-color').value = c;
+        // switch to pen if on pan/tear
+        if (!['pen','pencil','marker'].includes(state.tool)) {
+            state.tool = 'pen';
+            Object.keys(toolMap).forEach(k => document.getElementById(k).classList.remove('active'));
+            document.getElementById('tool-pen').classList.add('active');
+        }
+        closePalette();
+    });
+    palette.appendChild(btn);
+});
+
+function closePalette() { palette.classList.remove('open'); }
+function updateColorDot() { document.getElementById('color-dot').style.background = state.color; }
+
+document.getElementById('btn-palette').addEventListener('click', e => {
+    e.stopPropagation();
+    palette.classList.toggle('open');
+});
+document.addEventListener('click', () => closePalette());
+palette.addEventListener('click', e => e.stopPropagation());
+
+document.getElementById('brush-color').addEventListener('input', e => {
+    state.color = e.target.value;
+    updateColorDot();
+});
+document.getElementById('brush-size').addEventListener('input', e => {
+    state.size = parseInt(e.target.value);
+});
+
+// Color picker swatch click
+document.getElementById('color-picker-wrap').addEventListener('click', () => {
+    document.getElementById('brush-color').click();
+});
+
+// ─── ORIGAMI DATA ─────────────────────────────────────────
+const ORIGAMI = [
+    {
+        name: 'Paper Crane 🦢',
+        level: 'hard',
+        steps: [
+            { text: 'Start with a square sheet of paper, colored side up. Fold diagonally in half — corner to corner. Unfold.', draw: (c,w,h) => { line(c,0,0,w,h,'#7c6af7',2); line(c,w,0,0,h,'#7c6af7',2); drawPaper(c,w,h); } },
+            { text: 'Fold in half horizontally. Unfold. Repeat vertically. You should now have 4 crease lines.', draw: (c,w,h) => { line(c,w/2,0,w/2,h,'#f7a06a',2); line(c,0,h/2,w,h/2,'#f7a06a',2); drawPaper(c,w,h); } },
+            { text: 'Bring all four corners of the paper to the center. Flatten into a smaller square (called the "waterbomb base").', draw: (c,w,h) => { drawPaper(c,w*.25,h*.25,w*.5,h*.5); line(c,w*.25,h*.25,w*.75,h*.75,'#7c6af7',1.5,true); } },
+            { text: 'Fold the top flap\'s left and right edges into the center vertical line. Unfold.', draw: (c,w,h) => { drawPaper(c,w*.2,h*.1,w*.6,h*.8); line(c,w*.2,h*.1,w/2,h*.9,'#f7a06a',1.5); line(c,w*.8,h*.1,w/2,h*.9,'#f7a06a',1.5); } },
+            { text: 'Lift the top flap and open it out. Press both sides inward to form a diamond shape. Repeat on the other side.', draw: (c,w,h) => { diamond(c,w,h,'#7c6af7'); } },
+            { text: 'Fold the top point of the diamond down. Repeat on the back.', draw: (c,w,h) => { diamond(c,w,h,'#ccc'); line(c,w/2,h*.15,w/2,h*.6,'#f7a06a',2); } },
+            { text: 'Inside-reverse fold one point to make the head. Spread the wings apart gently. Your crane is complete! 🦢', draw: (c,w,h) => { c.save(); c.translate(w/2,h/2); drawCraneOutline(c,w,h); c.restore(); } },
+        ]
+    },
+    {
+        name: 'Paper Boat ⛵',
+        level: 'easy',
+        steps: [
+            { text: 'Start with a rectangle. Fold in half lengthwise (hamburger fold). Crease well.', draw: (c,w,h) => { drawPaper(c,0,h*.25,w,h*.5); line(c,0,h/2,w,h/2,'#7c6af7',2); } },
+            { text: 'Fold both top corners down to the center line, making a triangle at the top.', draw: (c,w,h) => { drawPaper(c,0,h*.25,w,h*.75); tri(c,0,h*.25,w,h*.25,w/2,h*.5,'#7c6af7'); } },
+            { text: 'Fold the front bottom strip up. Flip over and fold the back bottom strip up too.', draw: (c,w,h) => { drawPaper(c,0,h*.2,w,h*.75); drawPaper(c,w*.1,h*.65,w*.8,h*.15,'#f7a06a'); } },
+            { text: 'Gently pull open the hat shape from both sides. Press down the top to create a square. It becomes a diamond.', draw: (c,w,h) => { diamond(c,w,h,'#aed9ff'); } },
+            { text: 'Fold the front bottom triangle up. Repeat on the back.', draw: (c,w,h) => { diamond(c,w,h,'#aed9ff'); tri(c,w*.2,h*.7,w*.8,h*.7,w/2,h*.95,'#7c6af7'); } },
+            { text: 'Open the boat from the top, pressing sides outward. Your boat is ready to sail! ⛵', draw: (c,w,h) => { c.save(); c.translate(w/2,h/2); drawBoatOutline(c,w,h); c.restore(); } },
+        ]
+    },
+    {
+        name: 'Paper Plane ✈️',
+        level: 'easy',
+        steps: [
+            { text: 'Start with an A4 rectangle. Fold in half lengthwise. Unfold — you now have a center line.', draw: (c,w,h) => { drawPaper(c,0,0,w,h); line(c,w/2,0,w/2,h,'#7c6af7',2); } },
+            { text: 'Fold the top-left corner down to the center line. Repeat with the top-right corner.', draw: (c,w,h) => { drawPaper(c,0,0,w,h); tri(c,0,0,w/2,0,w/2,h*.35,'#f7a06a'); tri(c,w,0,w/2,0,w/2,h*.35,'#f7a06a'); } },
+            { text: 'Fold the top triangle (the new angled edges) again down to the center line. Like sharpening the nose.', draw: (c,w,h) => { drawPaper(c,0,0,w,h); line(c,0,h*.25,w/2,h*.1,'#7c6af7',2); line(c,w,h*.25,w/2,h*.1,'#7c6af7',2); } },
+            { text: 'Fold the whole plane in half along the center line.', draw: (c,w,h) => { drawPaper(c,0,h*.1,w/2,h*.8); line(c,w/2,h*.1,w/2,h*.9,'#7c6af7',2); } },
+            { text: 'Fold one wing down so its edge meets the bottom of the fuselage. Repeat on the other side.', draw: (c,w,h) => { drawPaper(c,0,h*.1,w,h*.5); line(c,0,h*.4,w,h*.4,'#f7a06a',2); } },
+            { text: 'Hold the center and throw gently. Your plane is ready! ✈️', draw: (c,w,h) => { c.save(); c.translate(w/2,h/2); drawPlaneOutline(c,w,h); c.restore(); } },
+        ]
+    },
+    {
+        name: 'Paper Heart ❤️',
+        level: 'easy',
+        steps: [
+            { text: 'Start with a square. Fold in half diagonally to make a triangle.', draw: (c,w,h) => { tri(c,0,h,w,h,w/2,0,'#f7a06a'); } },
+            { text: 'Fold in half again (smaller triangle). Unfold back to the bigger triangle.', draw: (c,w,h) => { tri(c,0,h,w/2,h,w/4,h/2,'#7c6af7'); tri(c,w,h,w/2,h,w*.75,h/2,'#7c6af7'); } },
+            { text: 'Take the top corner (right angle) of the big triangle and fold it down to meet the midpoint of the bottom edge.', draw: (c,w,h) => { tri(c,0,h,w,h,w/2,0,'#f7a06a'); line(c,w/2,0,w/2,h,'#7c6af7',1.5,true); } },
+            { text: 'Fold both sharp corners (left and right) upward, overlapping the top edge.', draw: (c,w,h) => { drawPaper(c,w*.1,h*.35,w*.8,h*.55); line(c,0,h*.6,w*.3,h*.35,'#7c6af7',2); line(c,w,h*.6,w*.7,h*.35,'#7c6af7',2); } },
+            { text: 'Flip over. Fold the two side corners inward slightly to round the heart shape.', draw: (c,w,h) => { heart(c,w,h,'#ff4757'); } },
+        ]
+    },
+    {
+        name: 'Paper Star ⭐',
+        level: 'medium',
+        steps: [
+            { text: 'Cut a long thin strip of paper (about 2cm wide). Tie it in a loose knot — like tying your shoelace but only one loop.', draw: (c,w,h) => { c.strokeStyle='#f7a06a';c.lineWidth=6;c.beginPath();c.moveTo(w*.1,h*.5);c.bezierCurveTo(w*.3,h*.1,w*.7,h*.9,w*.9,h*.5);c.stroke(); } },
+            { text: 'Flatten the knot carefully — a pentagon shape should appear. Crease the edges well.', draw: (c,w,h) => { pentagon(c,w,h,'#ffd32a'); } },
+            { text: 'Wrap the short end of the strip around the pentagon, tucking it inside.', draw: (c,w,h) => { pentagon(c,w,h,'#ffd32a'); line(c,w*.5,h*.5,w*.8,h*.2,'#7c6af7',3); } },
+            { text: 'Keep wrapping the long end around — each side of the pentagon once. Tuck the final end in to lock it.', draw: (c,w,h) => { pentagon(c,w,h,'#aed9ff'); line(c,w*.2,h*.3,w*.8,h*.7,'#f7a06a',2); } },
+            { text: 'Gently press each face of the pentagon inward with your fingernail to puff it up. It becomes a 3D star! ⭐', draw: (c,w,h) => { star(c,w,h,'#ffd32a'); } },
+        ]
+    },
+];
+
+// Drawing helpers for tutorial
+function drawPaper(c,x,y,w,h) {
+    if (w === undefined) { // drawPaper(c, w, h) shorthand
+        c.fillStyle='rgba(240,240,240,0.9)'; c.fillRect(0,0,x,y); return;
+    }
+    c.fillStyle='rgba(230,230,230,0.8)'; c.strokeStyle='#999'; c.lineWidth=1;
+    c.fillRect(x,y,w,h); c.strokeRect(x,y,w,h);
+}
+function line(c,x1,y1,x2,y2,col,lw,dash) {
+    c.save(); c.strokeStyle=col; c.lineWidth=lw;
+    if(dash) c.setLineDash([6,4]);
+    c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2); c.stroke(); c.restore();
+}
+function tri(c,x1,y1,x2,y2,x3,y3,col) {
+    c.fillStyle=col+'55'; c.strokeStyle=col; c.lineWidth=2;
+    c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2); c.lineTo(x3,y3); c.closePath();
+    c.fill(); c.stroke();
+}
+function diamond(c,w,h,col) {
+    c.fillStyle=col+'44'; c.strokeStyle=col; c.lineWidth=2;
+    c.beginPath(); c.moveTo(w/2,h*.05); c.lineTo(w*.9,h/2); c.lineTo(w/2,h*.95); c.lineTo(w*.1,h/2); c.closePath(); c.fill(); c.stroke();
+}
+function pentagon(c,w,h,col) {
+    c.fillStyle=col+'44'; c.strokeStyle=col; c.lineWidth=2;
+    c.beginPath();
+    for(let i=0;i<5;i++){const a=i*2*Math.PI/5-Math.PI/2;c.lineTo(w/2+Math.cos(a)*w*.3,h/2+Math.sin(a)*h*.3);}
+    c.closePath(); c.fill(); c.stroke();
+}
+function star(c,w,h,col) {
+    c.fillStyle=col; c.strokeStyle='rgba(0,0,0,0.2)'; c.lineWidth=1.5;
+    c.beginPath();
+    for(let i=0;i<10;i++){const a=i*Math.PI/5-Math.PI/2;const r=i%2===0?w*.33:w*.15;c.lineTo(w/2+Math.cos(a)*r,h/2+Math.sin(a)*r);}
+    c.closePath(); c.fill(); c.stroke();
+}
+function heart(c,w,h,col) {
+    c.fillStyle=col; c.beginPath(); c.moveTo(w/2,h*.7);
+    c.bezierCurveTo(w*.1,h*.5,w*.1,h*.2,w/2,h*.35);
+    c.bezierCurveTo(w*.9,h*.2,w*.9,h*.5,w/2,h*.7);
+    c.closePath(); c.fill();
+}
+function drawCraneOutline(c,w,h) {
+    c.fillStyle='rgba(124,106,247,0.18)'; c.strokeStyle='#7c6af7'; c.lineWidth=2.5;
+    c.beginPath(); c.moveTo(0,-h*.35); c.lineTo(-w*.3,0); c.lineTo(0,h*.35); c.lineTo(w*.3,0); c.closePath(); c.fill(); c.stroke();
+    line(c,-w*.3,0,w*.3,0,'#7c6af7',1.5,true);
+}
+function drawBoatOutline(c,w,h) {
+    c.fillStyle='rgba(174,217,255,0.3)'; c.strokeStyle='#1e90ff'; c.lineWidth=2.5;
+    c.beginPath(); c.moveTo(-w*.4,h*.1); c.lineTo(-w*.35,h*.25); c.lineTo(w*.35,h*.25); c.lineTo(w*.4,h*.1); c.closePath(); c.fill(); c.stroke();
+    tri(c,-w*.1,-h*.3,w*.1,-h*.3,0,h*.1,'#1e90ff');
+}
+function drawPlaneOutline(c,w,h) {
+    c.fillStyle='rgba(255,165,2,0.2)'; c.strokeStyle='#f7a06a'; c.lineWidth=2.5;
+    c.beginPath(); c.moveTo(-w*.45,h*.05); c.lineTo(w*.45,0); c.lineTo(-w*.45,-h*.05); c.closePath(); c.fill(); c.stroke();
+    line(c,-w*.2,-h*.05,-w*.4,-h*.25,'#f7a06a',2); line(c,-w*.2,h*.05,-w*.4,h*.25,'#f7a06a',2);
+}
+
+// ─── ORIGAMI PANEL ────────────────────────────────────────
+const oriList = document.getElementById('ori-list');
+ORIGAMI.forEach((model, idx) => {
+    const card = document.createElement('div');
+    card.className = 'ori-card';
+    card.innerHTML = `<div class="badge ${model.level}">${model.level.toUpperCase()}</div><h3>${model.name}</h3><p>${model.steps.length} steps</p>`;
+    card.addEventListener('click', () => openTutorial(idx));
+    oriList.appendChild(card);
+});
+
+document.getElementById('btn-origami').addEventListener('click', () => {
+    const panel = document.getElementById('origami-panel');
+    panel.classList.toggle('open');
+});
+
+// ─── TUTORIAL ─────────────────────────────────────────────
+let tutModel = null, tutStep = 0;
+const tutCanvas = document.getElementById('tut-canvas');
+const tutCtx    = tutCanvas.getContext('2d');
+
+function openTutorial(idx) {
+    tutModel = ORIGAMI[idx]; tutStep = 0;
+    document.getElementById('origami-panel').classList.remove('open');
+    document.getElementById('tut-overlay').classList.add('open');
+    renderTutStep();
+}
+
+function renderTutStep() {
+    if (!tutModel) return;
+    const step = tutModel.steps[tutStep];
+    const total = tutModel.steps.length;
+    document.getElementById('tut-title').textContent = tutModel.name;
+    document.getElementById('tut-progress').textContent = `Step ${tutStep + 1} of ${total}`;
+    document.getElementById('tut-instruction').textContent = step.text;
+    document.getElementById('tut-prev').disabled = tutStep === 0;
+    document.getElementById('tut-next').textContent = tutStep === total - 1 ? '🎉 Done!' : 'Next →';
+
+    // Fit canvas
+    const wrap = document.getElementById('tut-canvas-wrap');
+    tutCanvas.width  = wrap.clientWidth  || 400;
+    tutCanvas.height = wrap.clientHeight || 300;
+    const w = tutCanvas.width, h = tutCanvas.height;
+
+    tutCtx.clearRect(0, 0, w, h);
+    tutCtx.fillStyle = '#f8f8f5';
+    tutCtx.fillRect(0, 0, w, h);
+    step.draw(tutCtx, w, h);
+
+    // Also draw a visual fold line on the real paper for feedback
+    if (tutStep > 0) {
+        const hw = PAPER_W / 2;
+        const hh = PAPER_H / 2;
+        const a  = (tutStep / total) * Math.PI;
+        foldLines.push({
+            x1: hw + Math.cos(a) * hw * 0.9,
+            y1: hh + Math.sin(a) * hh * 0.9,
+            x2: hw - Math.cos(a) * hw * 0.9,
+            y2: hh - Math.sin(a) * hh * 0.9,
+        });
+    }
+}
+
+document.getElementById('tut-next').addEventListener('click', () => {
+    if (!tutModel) return;
+    if (tutStep < tutModel.steps.length - 1) {
+        tutStep++;
+        renderTutStep();
+    } else {
+        document.getElementById('tut-overlay').classList.remove('open');
+        toast('Origami complete! 🎉🦢');
+        tutModel = null;
+    }
+});
+document.getElementById('tut-prev').addEventListener('click', () => {
+    if (tutStep > 0) { tutStep--; foldLines.pop(); renderTutStep(); }
+});
+document.getElementById('tut-close').addEventListener('click', () => {
+    document.getElementById('tut-overlay').classList.remove('open');
+    tutModel = null;
+});
+
+// ─── WELCOME SCREEN ───────────────────────────────────────
+document.getElementById('start-btn').addEventListener('click', () => {
+    const name = document.getElementById('name-input').value.trim();
+    if (name) {
+        document.getElementById('user-label').textContent = `${name}'s Paper`;
+        localStorage.setItem('sp_name', name);
+    }
+    dismissWelcome();
+});
+document.getElementById('skip-btn').addEventListener('click', dismissWelcome);
+function dismissWelcome() {
+    document.getElementById('welcome').style.opacity = '0';
+    document.getElementById('welcome').style.transition = 'opacity 0.4s';
+    setTimeout(() => document.getElementById('welcome').style.display = 'none', 400);
+    localStorage.setItem('sp_seen', '1');
+}
+
+// Restore name
+const savedName = localStorage.getItem('sp_name');
+if (savedName) document.getElementById('user-label').textContent = `${savedName}'s Paper`;
+if (localStorage.getItem('sp_seen')) {
+    document.getElementById('welcome').style.display = 'none';
+}
+
+// ─── TOAST ────────────────────────────────────────────────
+let toastTimer;
+function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// ─── INIT ─────────────────────────────────────────────────
+updateColorDot();
+centerPaper();
+resize();
+loop();
+</script>
 </body>
 </html>
