@@ -1457,6 +1457,39 @@ function toast(msg) {
     toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
 }
 
+// ─── KEYBOARD SHORTCUTS ───────────────────────────────────
+window.addEventListener('keydown', e => {
+    // Ignore when typing in an input
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) redo();
+        else undo();
+        return;
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        redo();
+        return;
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        document.getElementById('btn-save').click();
+        return;
+    }
+
+    const key = e.key.toLowerCase();
+    if (key === 'p') document.getElementById('tool-pen').click();
+    else if (key === 'b') document.getElementById('tool-pencil').click();
+    else if (key === 'm') document.getElementById('tool-marker').click();
+    else if (key === 'e') document.getElementById('tool-eraser').click();
+    else if (key === 't') document.getElementById('tool-tear').click();
+    else if (key === 'h' || key === 'v' || key === ' ') document.getElementById('tool-pan').click();
+    else if (key === 'c') document.getElementById('btn-crush').click();
+    else if (key === 'f') document.getElementById('btn-flip').click();
+});
+
 // ─── INIT ─────────────────────────────────────────────────
 updateColorDot();
 centerPaper();
