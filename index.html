@@ -1226,6 +1226,39 @@ const ORIGAMI = [
             { text: 'Gently press each face of the pentagon inward with your fingernail to puff it up. It becomes a 3D star! ⭐', draw: (c,w,h) => { star(c,w,h,'#ffd32a'); } },
         ]
     },
+    {
+        name: 'Paper Butterfly 🦋',
+        level: 'medium',
+        steps: [
+            { text: 'Start with a square. Fold diagonally both ways, then horizontally and vertically to make an X and + crease.', draw: (c,w,h) => { drawPaper(c,w,h); line(c,0,0,w,h,'#7c6af7',1.5,true); line(c,w,0,0,h,'#7c6af7',1.5,true); line(c,w/2,0,w/2,h,'#f7a06a',1.5,true); line(c,0,h/2,w,h/2,'#f7a06a',1.5,true); } },
+            { text: 'Collapse along the creases to form a waterbomb triangle base.', draw: (c,w,h) => { tri(c,w*.1,h*.8,w*.9,h*.8,w/2,h*.2,'#fd79a8'); } },
+            { text: 'Fold the top two front flaps upwards so their points meet at the top apex.', draw: (c,w,h) => { tri(c,w*.1,h*.8,w*.9,h*.8,w/2,h*.2,'#fd79a8'); tri(c,w/2,h*.8,w*.3,h*.5,w/2,h*.2,'#6c5ce7'); tri(c,w/2,h*.8,w*.7,h*.5,w/2,h*.2,'#6c5ce7'); } },
+            { text: 'Flip over. Fold the bottom point all the way up past the top edge, leaving a tiny tip sticking out.', draw: (c,w,h) => { tri(c,w*.1,h*.3,w*.9,h*.3,w/2,h*.9,'#fd79a8'); tri(c,w*.4,h*.3,w*.6,h*.3,w/2,h*.18,'#e17055'); } },
+            { text: 'Fold the tiny tip over the top edge to lock it, then fold in half vertically. Spread the wings! 🦋', draw: (c,w,h) => { c.save(); c.translate(w/2,h/2); drawButterflyOutline(c,w,h); c.restore(); } },
+        ]
+    },
+    {
+        name: 'Paper Fox 🦊',
+        level: 'easy',
+        steps: [
+            { text: 'Start with a square. Fold diagonally in half to create a large triangle.', draw: (c,w,h) => { tri(c,w*.1,h*.85,w*.9,h*.85,w/2,h*.15,'#ffa502'); } },
+            { text: 'Fold the left corner down to the bottom center, and the right corner down to the bottom center.', draw: (c,w,h) => { diamond(c,w,h,'#ffa502'); line(c,w/2,h*.1,w/2,h*.9,'#7c6af7',1.5,true); } },
+            { text: 'Fold the entire diamond in half down the center vertical line.', draw: (c,w,h) => { tri(c,w*.2,h*.85,w*.8,h*.85,w*.2,h*.15,'#ffa502'); } },
+            { text: 'Fold back the first two layers to form ears, and flatten the middle layer to form the face!', draw: (c,w,h) => { tri(c,w*.1,h*.8,w*.8,h*.8,w*.4,h*.3,'#ffa502'); tri(c,w*.2,h*.3,w*.35,h*.1,w*.4,h*.3,'#ff6348'); tri(c,w*.5,h*.3,w*.65,h*.1,w*.7,h*.3,'#ff6348'); } },
+            { text: 'Draw eyes and a nose with your pen tool. Your cute origami fox is done! 🦊', draw: (c,w,h) => { c.save(); c.translate(w/2,h/2); drawFoxOutline(c,w,h); c.restore(); } },
+        ]
+    },
+    {
+        name: 'Origami Dog Face 🐶',
+        level: 'easy',
+        steps: [
+            { text: 'Start with a square. Fold diagonally in half with the point facing downward.', draw: (c,w,h) => { tri(c,w*.1,h*.2,w*.9,h*.2,w/2,h*.85,'#ffd32a'); } },
+            { text: 'Fold the left top corner downwards at an angle to create the left floppy puppy ear.', draw: (c,w,h) => { tri(c,w*.1,h*.2,w*.9,h*.2,w/2,h*.85,'#ffd32a'); tri(c,w*.15,h*.2,w*.3,h*.2,w*.1,h*.65,'#e17055'); } },
+            { text: 'Fold the right top corner downwards at the same angle for the right ear.', draw: (c,w,h) => { tri(c,w*.1,h*.2,w*.9,h*.2,w/2,h*.85,'#ffd32a'); tri(c,w*.15,h*.2,w*.3,h*.2,w*.1,h*.65,'#e17055'); tri(c,w*.85,h*.2,w*.7,h*.2,w*.9,h*.65,'#e17055'); } },
+            { text: 'Fold the bottom tip upwards slightly to create the cute dog snout.', draw: (c,w,h) => { tri(c,w*.1,h*.2,w*.9,h*.2,w/2,h*.85,'#ffd32a'); tri(c,w*.4,h*.85,w*.6,h*.85,w/2,h*.7,'#fff'); } },
+            { text: 'Use your pen tool to draw eyes and a black nose. Woof! Your puppy is complete! 🐶', draw: (c,w,h) => { c.save(); c.translate(w/2,h/2); drawDogOutline(c,w,h); c.restore(); } },
+        ]
+    },
 ];
 
 // Drawing helpers for tutorial
@@ -1282,6 +1315,31 @@ function drawPlaneOutline(c,w,h) {
     c.fillStyle='rgba(255,165,2,0.2)'; c.strokeStyle='#f7a06a'; c.lineWidth=2.5;
     c.beginPath(); c.moveTo(-w*.45,h*.05); c.lineTo(w*.45,0); c.lineTo(-w*.45,-h*.05); c.closePath(); c.fill(); c.stroke();
     line(c,-w*.2,-h*.05,-w*.4,-h*.25,'#f7a06a',2); line(c,-w*.2,h*.05,-w*.4,h*.25,'#f7a06a',2);
+}
+function drawButterflyOutline(c,w,h) {
+    c.fillStyle='rgba(253,121,168,0.3)'; c.strokeStyle='#fd79a8'; c.lineWidth=2.5;
+    c.beginPath();
+    c.moveTo(0,0);
+    c.bezierCurveTo(-w*.3,-h*.4,-w*.4,-h*.1,0,h*.1);
+    c.bezierCurveTo(w*.4,-h*.1,w*.3,-h*.4,0,0);
+    c.fill(); c.stroke();
+    line(c,0,-h*.2,0,h*.2,'#6c5ce7',3);
+}
+function drawFoxOutline(c,w,h) {
+    c.fillStyle='rgba(255,165,2,0.3)'; c.strokeStyle='#ffa502'; c.lineWidth=2.5;
+    c.beginPath();
+    c.moveTo(0,-h*.1); c.lineTo(-w*.3,-h*.3); c.lineTo(-w*.15,h*.2); c.lineTo(w*.15,h*.2); c.lineTo(w*.3,-h*.3); c.closePath();
+    c.fill(); c.stroke();
+    c.fillStyle='#000'; c.beginPath(); c.arc(0,h*.12,4,0,Math.PI*2); c.fill();
+}
+function drawDogOutline(c,w,h) {
+    c.fillStyle='rgba(255,211,42,0.3)'; c.strokeStyle='#ffd32a'; c.lineWidth=2.5;
+    c.beginPath();
+    c.moveTo(-w*.25,-h*.2); c.lineTo(w*.25,-h*.2); c.lineTo(0,h*.25); c.closePath();
+    c.fill(); c.stroke();
+    tri(c,-w*.25,-h*.2,-w*.1,-h*.2,-w*.25,h*.1,'#e17055');
+    tri(c,w*.25,-h*.2,w*.1,-h*.2,w*.25,h*.1,'#e17055');
+    c.fillStyle='#000'; c.beginPath(); c.arc(0,h*.1,5,0,Math.PI*2); c.fill();
 }
 
 // ─── ORIGAMI PANEL ────────────────────────────────────────
