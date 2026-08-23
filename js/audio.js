@@ -1,101 +1,94 @@
-export class AudioEngine {
-    constructor() {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (AudioContext) {
-            this.ctx = new AudioContext();
-        }
-        this.tearNode = null;
-        this.tearGain = null;
-    }
+// Web Audio API Synthesis for Paper Tear & Crush Effects
 
-    resume() {
-        if (this.ctx && this.ctx.state === 'suspended') {
-            this.ctx.resume();
+let audioCtx = null;
+
+export function getAudioContext() {
+    if (!audioCtx) {
+        try {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) {
+            console.warn("Web Audio API not supported:", e);
         }
     }
+    if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+    return audioCtx;
+}
 
-    playCrush() {
-        if (!this.ctx) return;
-        this.resume();
-        // Generate a low, crunchy noise for crushing paper
-        this.playNoise(0.4, 'lowpass', 800, 1.5);
+export function playCrushSound() {
+    const ac = getAudioContext();
+    if (!ac) return;
+
+    const buf = ac.createBuffer(1, ac.sampleRate * 0.5, ac.sampleRate);
+    const data = buf.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < data.length; i++) {
+        const white = Math.random() * 2 - 1;
+        last = (last + 0.02 * white) / 1.02;
+        data[i] = last * 4;
     }
 
-    startContinuousTear() {
-        if (!this.ctx) return;
-        this.resume();
-        if (this.tearNode) return; // Already tearing
-        
-        const bufferSize = this.ctx.sampleRate * 2; // 2 seconds loop
-        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-            data[i] = (Math.random() * 2 - 1) * 0.8; 
+    const src = ac.createBufferSource();
+    src.buffer = buf;
+    const filter = ac.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 1100;
+
+    const gain = ac.createGain();
+    gain.gain.setValueAtTime(0.8, ac.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ac.currentTime + 0.5);
+
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(ac.destination);
+    src.start();
+}
+
+let tearSoundNode = null;
+let tearGainNode = null;
+
+export function startTearSound() {
+    const ac = getAudioContext();
+    if (!ac || tearSoundNode) return;
+
+    const buf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) {
+        data[i] = Math.random() * 2 - 1;
+    }
+
+    tearSoundNode = ac.createBufferSource();
+    tearSoundNode.buffer = buf;
+    tearSoundNode.loop = true;
+
+    const filter = ac.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.value = 2800;
+
+    tearGainNode = ac.createGain();
+    tearGainNode.gain.setValueAtTime(0, ac.currentTime);
+    tearGainNode.gain.linearRampToValueAtTime(0.35, ac.currentTime + 0.05);
+
+    tearSoundNode.connect(filter);
+    filter.connect(tearGainNode);
+    tearGainNode.connect(ac.destination);
+    tearSoundNode.start();
+}
+
+export function stopTearSound() {
+    if (!tearSoundNode) return;
+    try {
+        if (audioCtx) {
+            tearGainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.08);
         }
-        
-        this.tearNode = this.ctx.createBufferSource();
-        this.tearNode.buffer = buffer;
-        this.tearNode.loop = true;
-        
-        const filter = this.ctx.createBiquadFilter();
-        filter.type = 'highpass';
-        filter.frequency.value = 2500; // High pitch rip sound
-        
-        this.tearGain = this.ctx.createGain();
-        this.tearGain.gain.setValueAtTime(0, this.ctx.currentTime);
-        this.tearGain.gain.linearRampToValueAtTime(0.5, this.ctx.currentTime + 0.05); // Fade in
-        
-        this.tearNode.connect(filter);
-        filter.connect(this.tearGain);
-        this.tearGain.connect(this.ctx.destination);
-        
-        this.tearNode.start();
-    }
-    
-    stopContinuousTear() {
-        if (!this.ctx || !this.tearNode) return;
-        
-        // Fade out quickly to avoid popping
-        this.tearGain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.1);
-        
-        const nodeToStop = this.tearNode;
-        this.tearNode = null;
-        
-        setTimeout(() => {
-            try {
-                nodeToStop.stop();
-            } catch(e) {}
-        }, 150);
-    }
+    } catch (e) {}
 
-    playNoise(duration, filterType, filterFreq, gainStart) {
-        const bufferSize = this.ctx.sampleRate * duration;
-        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-            // Brown noise approximation for crunch
-            let white = Math.random() * 2 - 1;
-            data[i] = (this.lastOut || 0) + (0.02 * white);
-            data[i] /= 1.02;
-            this.lastOut = data[i];
-            data[i] *= 3.5; // Compensate gain
-        }
-
-        const noiseSource = this.ctx.createBufferSource();
-        noiseSource.buffer = buffer;
-
-        const filter = this.ctx.createBiquadFilter();
-        filter.type = filterType;
-        filter.frequency.value = filterFreq;
-
-        const gainNode = this.ctx.createGain();
-        gainNode.gain.setValueAtTime(gainStart, this.ctx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
-
-        noiseSource.connect(filter);
-        filter.connect(gainNode);
-        gainNode.connect(this.ctx.destination);
-
-        noiseSource.start();
-    }
+    const node = tearSoundNode;
+    tearSoundNode = null;
+    setTimeout(() => {
+        try {
+            node.stop();
+        } catch (e) {}
+    }, 100);
 }
