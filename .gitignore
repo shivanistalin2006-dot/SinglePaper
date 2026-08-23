@@ -1,20 +1,31 @@
-# Node/NPM (if tooling is added later)
-node_modules/
-npm-debug.log
-
-# Mac OS
+# OS metadata files
 .DS_Store
-
-# Windows
-Thumbs.db
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
 ehthumbs.db
+Thumbs.db
 Desktop.ini
 
-# Editor directories and files
-.idea/
+# Node / Tooling (if added later)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# IDEs and Editors
 .vscode/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# Build / Temp artifacts
+dist/
+build/
+.tmp/
+*.log
