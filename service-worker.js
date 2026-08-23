@@ -1,9 +1,14 @@
-const CACHE_NAME = 'singlepaper-v2';
+const CACHE_NAME = 'singlepaper-v3';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
+    './style.css',
     './manifest.json',
-    './README.md'
+    './README.md',
+    './js/main.js',
+    './js/paper.js',
+    './js/origami.js',
+    './js/audio.js'
 ];
 
 self.addEventListener('install', (event) => {
