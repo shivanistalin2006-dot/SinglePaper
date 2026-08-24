@@ -1,6 +1,6 @@
 // Single Paper - Main Application Controller & UI Event Dispatcher
 
-import { playCrushSound, startTearSound, stopTearSound } from './audio.js';
+import { playCrushSound, startTearSound, stopTearSound, toggleAmbientMusic } from './audio.js';
 import { ORIGAMI } from './origami.js';
 import { PAPER_W, PAPER_H, screenToPaper, isInsidePaper, renderBg, renderPaper } from './paper.js';
 
@@ -340,6 +340,22 @@ export function selectTool(toolName, btnId) {
 Object.entries(toolMap).forEach(([id, tool]) => {
     document.getElementById(id).addEventListener('click', () => selectTool(tool, id));
 });
+
+const btnMusic = document.getElementById('btn-music');
+if (btnMusic) {
+    btnMusic.addEventListener('click', () => {
+        const isPlaying = toggleAmbientMusic();
+        if (isPlaying) {
+            btnMusic.classList.add('active-music');
+            btnMusic.textContent = '🎵 Music ON';
+            toast('Ambient Music ON 🎵');
+        } else {
+            btnMusic.classList.remove('active-music');
+            btnMusic.textContent = '🎵 Music';
+            toast('Ambient Music OFF 🔇');
+        }
+    });
+}
 
 document.getElementById('btn-flip').addEventListener('click', () => {
     state.flipped = !state.flipped;
