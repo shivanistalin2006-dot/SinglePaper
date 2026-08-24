@@ -356,6 +356,12 @@ if (btnMusic) {
             toast('Ambient Music OFF 🔇');
         }
     });
+const btnHelp = document.getElementById('btn-help');
+if (btnHelp) {
+    btnHelp.addEventListener('click', () => {
+        alert("📄 Single Paper Shortcuts:\n\n• P: Pen Tool\n• B: Pencil Tool\n• M: Marker Tool\n• E: Eraser Tool\n• T: Tear Paper\n• C: Crush Paper\n• F: Flip Paper\n• H / Space: Move/Pan Paper\n• Ctrl+Z / Ctrl+Y: Undo / Redo\n• Ctrl+S: Save Image");
+    });
+}
 const btnFullscreen = document.getElementById('btn-fullscreen');
 if (btnFullscreen) {
     btnFullscreen.addEventListener('click', () => {
