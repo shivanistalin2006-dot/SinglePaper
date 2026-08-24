@@ -36,6 +36,7 @@ export const state = {
     tool: 'pen',
     color: '#000000',
     size: 5,
+    opacity: 1,
 
     crushLevel: 0,
     paperColor: '#ffffff',
@@ -136,13 +137,13 @@ function applyBrush() {
     drawCtx.lineJoin    = 'round';
 
     if (state.tool === 'pencil') {
-        drawCtx.globalAlpha = 0.6;
+        drawCtx.globalAlpha = 0.6 * state.opacity;
         drawCtx.lineWidth   = Math.max(1, state.size * 0.75);
     } else if (state.tool === 'marker') {
-        drawCtx.globalAlpha = 0.4;
+        drawCtx.globalAlpha = 0.4 * state.opacity;
         drawCtx.lineWidth   = state.size * 2.8;
     } else {
-        drawCtx.globalAlpha = 1;
+        drawCtx.globalAlpha = state.opacity;
     }
 }
 
@@ -484,6 +485,12 @@ document.getElementById('color-picker-wrap').addEventListener('click', () => {
 document.getElementById('brush-size').addEventListener('input', e => {
     state.size = parseInt(e.target.value);
 });
+const brushOpacityInput = document.getElementById('brush-opacity');
+if (brushOpacityInput) {
+    brushOpacityInput.addEventListener('input', e => {
+        state.opacity = parseFloat(e.target.value);
+    });
+}
 
 // Origami UI & Tutorials
 const oriList = document.getElementById('ori-list');
