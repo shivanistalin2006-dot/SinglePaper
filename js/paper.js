@@ -97,7 +97,7 @@ export function renderPaper(paperCanvas, paperCtx, drawCanvas, tearCanvas, state
     paperCtx.shadowOffsetX = 0;
     paperCtx.shadowOffsetY = 0;
 
-    // 5. Subtle Ruled Margin Lines
+    // 5. Subtle Ruled Margin & Grid Lines
     paperCtx.save();
     const isDarkPaper = (state.paperColor === '#1e293b');
     paperCtx.strokeStyle = isDarkPaper ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.035)';
@@ -107,6 +107,14 @@ export function renderPaper(paperCanvas, paperCtx, drawCanvas, tearCanvas, state
         paperCtx.moveTo(25, y);
         paperCtx.lineTo(PAPER_W - 25, y);
         paperCtx.stroke();
+    }
+    if (state.showGrid) {
+        for (let x = 40; x < PAPER_W - 20; x += 32) {
+            paperCtx.beginPath();
+            paperCtx.moveTo(x, 25);
+            paperCtx.lineTo(x, PAPER_H - 25);
+            paperCtx.stroke();
+        }
     }
     paperCtx.restore();
 
