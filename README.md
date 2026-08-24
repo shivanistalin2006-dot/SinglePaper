@@ -20,6 +20,7 @@ An interactive, realistic digital paper playground built with vanilla JavaScript
   - **Eraser**: Precise canvas erasing.
   - **20-Color Quick Palette** + full HEX color picker.
   - Adjustable brush size slider.
+- 🎵 **Procedural Ambient Music**: Web Audio synthesized relaxing background tones for relaxing drawing sessions.
 - ✂️ **Realistic Paper Tearing**: Cut jagged tear paths across the paper with realistic procedural audio feedback.
 - 👊 **Paper Crushing & Crumpling**: Interactive crumpling simulation with tactile crunch sound effects and persistent crease lines.
 - 🔄 **Paper Flipping**: Mirror and flip the sheet over to use both sides.
@@ -42,6 +43,7 @@ An interactive, realistic digital paper playground built with vanilla JavaScript
 | **Tear Paper** | Select ✂️ & Click Drag across | Drag across the paper |
 | **Crush Paper** | Click 👊 in bottom toolbar | Tap 👊 in bottom toolbar |
 | **Flip Paper** | Click 🔄 in bottom toolbar | Tap 🔄 in bottom toolbar |
+| **Toggle Music**| Click 🎵 in top header | Tap 🎵 in top header |
 | **Undo / Redo** | `Ctrl+Z` / `Ctrl+Y` or ↩️ / ↪️ | Tap ↩️ / ↪️ buttons |
 
 ---
@@ -53,6 +55,10 @@ An interactive, realistic digital paper playground built with vanilla JavaScript
 3. **Paper Plane ✈️** (Easy) - Aerodynamic dart glider.
 4. **Paper Heart ❤️** (Easy) - Cute rounded corner Valentine fold.
 5. **Paper Star ⭐** (Medium) - Puffy 3D lucky origami star.
+6. **Paper Butterfly 🦋** (Medium) - Delicate winged butterfly.
+7. **Paper Fox 🦊** (Easy) - Cute fox face with pointed ears.
+8. **Paper Flower 🌸** (Medium) - Blooming 4-petal origami blossom.
+9. **Paper Box 📦** (Easy) - Standing 3D origami storage box.
 
 ---
 
