@@ -126,10 +126,21 @@ export function renderPaper(paperCanvas, paperCtx, drawCanvas, tearCanvas, state
     paperCtx.drawImage(tearCanvas, 0, 0);
     paperCtx.globalCompositeOperation = 'source-over';
 
-    // 10. Outer Crisp Paper Border
+    // 10. Outer Crisp Paper Border & Subtle Corner Curl
     paperCtx.strokeStyle = isDarkPaper ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.12)';
     paperCtx.lineWidth = 1;
     paperCtx.strokeRect(0, 0, PAPER_W, PAPER_H);
+
+    // Subtle realistic top-right paper corner dog-ear shadow
+    paperCtx.save();
+    paperCtx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+    paperCtx.beginPath();
+    paperCtx.moveTo(PAPER_W - 20, 0);
+    paperCtx.lineTo(PAPER_W, 20);
+    paperCtx.lineTo(PAPER_W - 20, 20);
+    paperCtx.closePath();
+    paperCtx.fill();
+    paperCtx.restore();
 
     paperCtx.restore();
 }
