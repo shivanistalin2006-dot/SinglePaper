@@ -14,6 +14,10 @@ export function getAudioContext() {
         audioCtx.resume();
     }
     return audioCtx;
+let masterVolume = 1.0;
+
+export function setMasterVolume(vol) {
+    masterVolume = Math.max(0, Math.min(1, vol));
 }
 
 export function playCrushSound() {
