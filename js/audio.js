@@ -1,4 +1,4 @@
-// Web Audio API Synthesis for Paper Tear & Crush Effects
+// Web Audio API Synthesis for Paper Tear, Crush Effects & Procedural Ambient Music
 
 let audioCtx = null;
 
@@ -91,4 +91,76 @@ export function stopTearSound() {
             node.stop();
         } catch (e) {}
     }, 100);
+}
+
+// ─── AMBIENT BACKGROUND MUSIC SYNTHESIZER ──────────────────
+let isAmbientPlaying = false;
+let ambientTimer = null;
+let ambientGainNode = null;
+
+// Soothing pentatonic frequencies (Hz) for relaxing paper background ambiance
+const CHORD_FREQS = [220, 261.63, 329.63, 392.00, 440, 523.25, 659.25];
+
+function playAmbientTone() {
+    const ac = getAudioContext();
+    if (!ac || !isAmbientPlaying) return;
+
+    const freq = CHORD_FREQS[Math.floor(Math.random() * CHORD_FREQS.length)];
+    const osc = ac.createOscillator();
+    const noteGain = ac.createGain();
+    const filter = ac.createBiquadFilter();
+
+    osc.type = Math.random() > 0.5 ? 'sine' : 'triangle';
+    osc.frequency.setValueAtTime(freq, ac.currentTime);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(600, ac.currentTime);
+
+    const now = ac.currentTime;
+    const duration = 4 + Math.random() * 3;
+
+    noteGain.gain.setValueAtTime(0, now);
+    noteGain.gain.linearRampToValueAtTime(0.08, now + 1.5);
+    noteGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    osc.connect(filter);
+    filter.connect(noteGain);
+    noteGain.connect(ambientGainNode);
+
+    osc.start(now);
+    osc.stop(now + duration);
+}
+
+export function startAmbientMusic() {
+    const ac = getAudioContext();
+    if (!ac) return;
+
+    if (!ambientGainNode) {
+        ambientGainNode = ac.createGain();
+        ambientGainNode.gain.setValueAtTime(0.5, ac.currentTime);
+        ambientGainNode.connect(ac.destination);
+    }
+
+    isAmbientPlaying = true;
+    playAmbientTone();
+
+    clearInterval(ambientTimer);
+    ambientTimer = setInterval(() => {
+        if (isAmbientPlaying) playAmbientTone();
+    }, 2500);
+}
+
+export function stopAmbientMusic() {
+    isAmbientPlaying = false;
+    clearInterval(ambientTimer);
+}
+
+export function toggleAmbientMusic() {
+    if (isAmbientPlaying) {
+        stopAmbientMusic();
+        return false;
+    } else {
+        startAmbientMusic();
+        return true;
+    }
 }
