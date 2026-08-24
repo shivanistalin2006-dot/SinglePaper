@@ -175,5 +175,24 @@ export const ORIGAMI = [
             { text: 'Fold the two corners down to meet the bottom tip, forming a diamond.', draw: (c,w,h) => { diamond(c,w,h,'#f97316'); line(c,w/2,h*.1,w/2,h*.9,'#6366f1',1.5,true); } },
             { text: 'Fold in half vertically, then fold back the outer flaps to form the ears and face! 🦊', draw: (c,w,h) => { c.save(); c.translate(w/2,h/2); drawFoxOutline(c,w,h); c.restore(); } }
         ]
+    },
+    {
+        name: 'Paper Flower 🌸',
+        level: 'medium',
+        steps: [
+            { text: 'Start with a square. Fold diagonally both ways, then unfold to make an X crease.', draw: (c,w,h) => { line(c,0,0,w,h,'#ec4899',2); line(c,w,0,0,h,'#ec4899',2); drawPaperBox(c,w,h); } },
+            { text: 'Fold all four corners to meet right at the center point.', draw: (c,w,h) => { drawPaperBox(c,w*.25,h*.25,w*.5,h*.5); tri(c,0,0,w*.25,h*.25,0,h*.5,'#ec4899'); } },
+            { text: 'Fold the newly formed outer corners to the center once more.', draw: (c,w,h) => { diamond(c,w,h,'#ec4899'); } },
+            { text: 'Gently peel back the inner flaps outward to reveal your blooming Paper Flower! 🌸', draw: (c,w,h) => { c.fillStyle='#ec4899'; c.beginPath(); c.arc(w/2,h/2,w*.25,0,Math.PI*2); c.fill(); } }
+        ]
+    },
+    {
+        name: 'Origami Box 📦',
+        level: 'easy',
+        steps: [
+            { text: 'Fold a square in half vertically and horizontally to divide it into 4 equal quarters.', draw: (c,w,h) => { drawPaperBox(c,w,h); line(c,w/2,0,w/2,h,'#3b82f6',2); line(c,0,h/2,w,h/2,'#3b82f6',2); } },
+            { text: 'Fold top and bottom edges into the center horizontal crease line.', draw: (c,w,h) => { drawPaperBox(c,0,h*.25,w,h*.5); line(c,0,h*.25,w,h*.25,'#3b82f6',2); line(c,0,h*.75,w,h*.75,'#3b82f6',2); } },
+            { text: 'Fold the side edges to center, then pull open the 4 corners to shape the standing 3D Box! 📦', draw: (c,w,h) => { drawPaperBox(c,w*.2,h*.2,w*.6,h*.6); } }
+        ]
     }
 ];
