@@ -356,6 +356,17 @@ if (btnMusic) {
             toast('Ambient Music OFF 🔇');
         }
     });
+const btnFullscreen = document.getElementById('btn-fullscreen');
+if (btnFullscreen) {
+    btnFullscreen.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(() => {});
+            toast('Fullscreen Mode ⛶');
+        } else {
+            document.exitFullscreen().catch(() => {});
+            toast('Exited Fullscreen ⛶');
+        }
+    });
 }
 
 document.getElementById('btn-flip').addEventListener('click', () => {
