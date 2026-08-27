@@ -73,17 +73,25 @@ export function renderPaper(paperCanvas, paperCtx, drawCanvas, tearCanvas, state
     paperCtx.translate(state.tx, state.ty);
     paperCtx.scale(state.scale, state.scale);
 
-    // 2. Rotate & Flip around Paper Center
+    // 2. Rotate, Flip & Crumple Scale around Paper Center
     const cx = PAPER_W / 2;
     const cy = PAPER_H / 2;
     paperCtx.translate(cx, cy);
     paperCtx.rotate(state.rot);
     if (state.flipped) paperCtx.scale(-1, 1);
+
+    // Apply physical scale reduction & slight tilt angle when crushed
+    if (state.crushLevel > 0) {
+        const crushScale = 1 - state.crushLevel * 0.045;
+        const crushRot   = (state.crushLevel % 2 === 1 ? 1 : -1) * state.crushLevel * 0.015;
+        paperCtx.scale(crushScale, crushScale);
+        paperCtx.rotate(crushRot);
+    }
     paperCtx.translate(-cx, -cy);
 
     // 3. Drop Shadow for Physical Sheet Depth
     paperCtx.shadowColor = 'rgba(0, 0, 0, 0.45)';
-    paperCtx.shadowBlur  = 35;
+    paperCtx.shadowBlur  = 35 + state.crushLevel * 5;
     paperCtx.shadowOffsetX = 6;
     paperCtx.shadowOffsetY = 14;
 
@@ -153,23 +161,57 @@ export function renderPaper(paperCanvas, paperCtx, drawCanvas, tearCanvas, state
     paperCtx.restore();
 }
 
+function pseudoRandom(seed) {
+    const x = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
+    return x - Math.floor(x);
+}
+
 function drawCrushCreases(ctx, state) {
     ctx.save();
-    ctx.globalAlpha = state.crushLevel * 0.14;
     const isDarkPaper = (state.paperColor === '#1e293b');
-    for (let i = 0; i < state.crushLevel * 20; i++) {
-        const x = Math.sin(i * 123.4 + state.crushLevel) * (PAPER_W * 0.45) + (PAPER_W / 2);
-        const y = Math.cos(i * 91.2  + state.crushLevel) * (PAPER_H * 0.45) + (PAPER_H / 2);
-        const len = 35 + Math.random() * 70;
-        const ang = Math.random() * Math.PI * 2;
+    const level = state.crushLevel;
 
+    // Deterministic 3D crease line generation
+    const totalLines = level * 28;
+    for (let i = 0; i < totalLines; i++) {
+        const r1 = pseudoRandom(i * 1.3 + level * 10.1);
+        const r2 = pseudoRandom(i * 2.7 + level * 20.2);
+        const r3 = pseudoRandom(i * 3.1 + level * 30.3);
+        const r4 = pseudoRandom(i * 4.9 + level * 40.4);
+
+        const x1 = r1 * (PAPER_W - 60) + 30;
+        const y1 = r2 * (PAPER_H - 60) + 30;
+        const len = 35 + r3 * 110;
+        const ang = r4 * Math.PI * 2;
+        const x2 = x1 + Math.cos(ang) * len;
+        const y2 = y1 + Math.sin(ang) * len;
+
+        // Dark Crease Shadow
         ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x + Math.cos(ang) * len, y + Math.sin(ang) * len);
-        ctx.strokeStyle = isDarkPaper ? '#ffffff' : '#000000';
-        ctx.lineWidth = 0.8 + Math.random() * 1.2;
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = isDarkPaper ? 'rgba(255, 255, 255, 0.45)' : 'rgba(0, 0, 0, 0.35)';
+        ctx.lineWidth = 1.2 + r3 * 1.5;
+        ctx.stroke();
+
+        // Parallel Highlight Line for 3D depth
+        ctx.beginPath();
+        ctx.moveTo(x1 + 1.5, y1 + 1.5);
+        ctx.lineTo(x2 + 1.5, y2 + 1.5);
+        ctx.strokeStyle = isDarkPaper ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.55)';
+        ctx.lineWidth = 0.9;
         ctx.stroke();
     }
+
+    // Heavy central crumple shadow gradient
+    const cx = PAPER_W / 2;
+    const cy = PAPER_H / 2;
+    const grad = ctx.createRadialGradient(cx, cy, 60, cx, cy, PAPER_W * 0.45);
+    grad.addColorStop(0, `rgba(0, 0, 0, ${level * 0.07})`);
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, PAPER_W, PAPER_H);
+
     ctx.restore();
 }
 

@@ -23,30 +23,38 @@ export function setMasterVolume(vol) {
 export function playCrushSound() {
     const ac = getAudioContext();
     if (!ac) return;
+    if (ac.state === 'suspended') ac.resume();
 
-    const buf = ac.createBuffer(1, ac.sampleRate * 0.5, ac.sampleRate);
-    const data = buf.getChannelData(0);
-    let last = 0;
-    for (let i = 0; i < data.length; i++) {
-        const white = Math.random() * 2 - 1;
-        last = (last + 0.02 * white) / 1.02;
-        data[i] = last * 4;
+    // Multi-burst paper crunch noise synthesis
+    const now = ac.currentTime;
+    for (let b = 0; b < 3; b++) {
+        const offset = b * 0.08;
+        const dur = 0.2 + Math.random() * 0.15;
+        const buf = ac.createBuffer(1, ac.sampleRate * dur, ac.sampleRate);
+        const data = buf.getChannelData(0);
+        let last = 0;
+        for (let i = 0; i < data.length; i++) {
+            const white = Math.random() * 2 - 1;
+            last = (last + 0.04 * white) / 1.04;
+            data[i] = last * (3 + b);
+        }
+
+        const src = ac.createBufferSource();
+        src.buffer = buf;
+
+        const filter = ac.createBiquadFilter();
+        filter.type = b % 2 === 0 ? 'bandpass' : 'highpass';
+        filter.frequency.setValueAtTime(1200 + b * 600, now + offset);
+
+        const gain = ac.createGain();
+        gain.gain.setValueAtTime(0.7, now + offset);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + offset + dur);
+
+        src.connect(filter);
+        filter.connect(gain);
+        gain.connect(ac.destination);
+        src.start(now + offset);
     }
-
-    const src = ac.createBufferSource();
-    src.buffer = buf;
-    const filter = ac.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.value = 1100;
-
-    const gain = ac.createGain();
-    gain.gain.setValueAtTime(0.8, ac.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ac.currentTime + 0.5);
-
-    src.connect(filter);
-    filter.connect(gain);
-    gain.connect(ac.destination);
-    src.start();
 }
 
 let tearSoundNode = null;

@@ -383,13 +383,16 @@ document.getElementById('btn-flip').addEventListener('click', () => {
 
 document.getElementById('btn-crush').addEventListener('click', () => {
     if (state.crushLevel >= 5) {
-        toast('Already fully crumpled! 👊');
+        state.crushLevel = 0;
+        playCrushSound();
+        renderPaper(paperCanvas, paperCtx, drawCanvas, tearCanvas, state, foldLines);
+        toast('Flattened & Uncrumpled Paper! 📄✨');
         return;
     }
     state.crushLevel++;
     playCrushSound();
     renderPaper(paperCanvas, paperCtx, drawCanvas, tearCanvas, state, foldLines);
-    const msgs = ['Crunch! 👊', 'More crumples! 👊', 'So crushed! 🗑', 'Completely crumpled! 😂', 'Maximum crush! 👊'];
+    const msgs = ['Crunch! 👊', 'More crumples! 👊', 'So crushed! 🗑', 'Completely crumpled! 😂', 'Maximum crush! (Click again to flatten) 👊'];
     toast(msgs[state.crushLevel - 1]);
 });
 
